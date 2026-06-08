@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter un client - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-person-plus-fill"></i> Ajouter un client</h1>
+        <p class="text-muted">Créer un nouveau compte client et définir son solde initial</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nom d'utilisateur</label>
+                                {% if form.username.errors %}
+                                    {{ form.username(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.username.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.username(class="form-control", id="username", placeholder="Ex: ali_ben") }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                {% if form.email.errors %}
+                                    {{ form.email(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.email.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.email(class="form-control", id="email", placeholder="client@example.com") }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Numéro de téléphone</label>
+                                {% if form.phone.errors %}
+                                    {{ form.phone(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.phone.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.phone(class="form-control", id="phone", placeholder="+213 6XX XXX XXX") }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="initial_balance" class="form-label">Solde initial (DA)</label>
+                                {% if form.initial_balance.errors %}
+                                    {{ form.initial_balance(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.initial_balance.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.initial_balance(class="form-control", id="initial_balance", placeholder="0.00", step="0.01") }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Info:</strong> Un mot de passe temporaire sera généré et attribué au client.
+                        Le client pourra le changer après sa première connexion.
+                    </div>
+                    
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Attention:</strong> Le solde initial sera déduit de votre compte.
+                        Votre solde actuel: <strong>{{ "%.2f"|format(current_user.balance) }} DA</strong>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('manage_clients') }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Instructions
+            </div>
+            <div class="card-body">
+                <h6>Étapes pour ajouter un client:</h6>
+                <ol>
+                    <li>Entrez le nom d'utilisateur du client</li>
+                    <li>Fournissez l'email du client</li>
+                    <li>Optionnellement, entrez le téléphone</li>
+                    <li>Définissez le solde initial à crédit</li>
+                    <li>Cliquez sur "Ajouter le client"</li>
+                </ol>
+                <hr>
+                <h6>Que se passe-t-il ensuite?</h6>
+                <ul>
+                    <li>Un compte sera créé pour le client</li>
+                    <li>Un mot de passe temporaire sera généré</li>
+                    <li>Le client pourra se connecter et envoyer du crédit</li>
+                    <li>Le montant sera déduit de votre solde</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

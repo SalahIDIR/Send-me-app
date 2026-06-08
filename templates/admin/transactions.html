@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Toutes les Transactions - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-receipt"></i> Toutes les Transactions</h1>
+    </div>
+    <div class="col-md-4">
+        <form method="GET" class="d-flex gap-2">
+            <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="{{ search }}">
+            <select name="status" class="form-select">
+                <option value="">Tous les statuts</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Complétée</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>En attente</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Échouée</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Filtrer</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>De</th>
+                        <th>À</th>
+                        <th>Montant</th>
+                        <th>Description</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions.items %}
+                    <tr>
+                        <td>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td><strong>{{ tx.sender.username }}</strong></td>
+                        <td><strong>{{ tx.receiver.username }}</strong></td>
+                        <td>{{ "%.2f"|format(tx.amount) }} DA</td>
+                        <td>{{ tx.description }}</td>
+                        <td>
+                            {% if tx.status == 'completed' %}
+                            <span class="badge badge-success">Complétée</span>
+                            {% elif tx.status == 'pending' %}
+                            <span class="badge badge-pending">En attente</span>
+                            {% else %}
+                            <span class="badge badge-failed">Échouée</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if transactions.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if transactions.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_transactions', page=transactions.prev_num, search=search, status=status_filter) }}">Précédent</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in transactions.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == transactions.page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_transactions', page=page_num, search=search, status=status_filter) }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if transactions.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_transactions', page=transactions.next_num, search=search, status=status_filter) }}">Suivant</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

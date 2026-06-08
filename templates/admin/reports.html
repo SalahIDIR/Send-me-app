@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Rapports - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-graph-up"></i> Rapports et Statistiques</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Total Utilisateurs</h5>
+            <div class="amount">{{ total_users }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Total Transactions</h5>
+            <div class="amount">{{ total_transactions }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Volume Total</h5>
+            <div class="amount" style="font-size: 1.3rem;">{{ "%.0f"|format(total_volume) }} DA</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Solde en Circulation</h5>
+            <div class="amount" style="font-size: 1.3rem;">{{ "%.0f"|format(total_balance) }} DA</div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Répartition</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Points de Vente:</strong> {{ total_pdv }}
+                </div>
+                <div class="mb-3">
+                    <strong>Clients:</strong> {{ total_clients }}
+                </div>
+                <div class="mb-0">
+                    <strong>Administrateurs:</strong> {{ total_users - total_pdv - total_clients }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Transactions (Dernier mois)</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Nombre</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in daily_stats %}
+                            <tr>
+                                <td>{{ stat.date }}</td>
+                                <td>{{ stat.count }}</td>
+                                <td>{{ "%.2f"|format(stat.amount or 0) }} DA</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Aucune donnée</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

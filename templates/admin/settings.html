@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres Système - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-gear"></i> Paramètres Système</h1>
+        <p class="text-muted">Configurez les paramètres de l'application</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <h5 class="mb-4"><i class="bi bi-percent"></i> Commissions</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Taux de commission (%)</label>
+                        <p class="text-muted small mb-2">Commission prélevée sur chaque transaction</p>
+                        {% if form.commission_rate.errors %}
+                            {{ form.commission_rate(class="form-control is-invalid") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.commission_rate.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.commission_rate(class="form-control", type="number", step="0.01", min="0", max="100") }}
+                        {% endif %}
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5 class="mb-4"><i class="bi bi-cash"></i> Limites de Transactions</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Montant minimum par transaction (DA)</label>
+                        {% if form.min_transaction.errors %}
+                            {{ form.min_transaction(class="form-control is-invalid") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.min_transaction.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.min_transaction(class="form-control", type="number", step="1", min="0") }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Montant maximum par transaction (DA)</label>
+                        {% if form.max_transaction.errors %}
+                            {{ form.max_transaction(class="form-control is-invalid") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.max_transaction.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.max_transaction(class="form-control", type="number", step="1", min="0") }}
+                        {% endif %}
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary", value="Sauvegarder les paramètres") }}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Information
+            </div>
+            <div class="card-body">
+                <h6>À propos des paramètres:</h6>
+                <ul>
+                    <li><strong>Commission:</strong> Pourcentage prélevé sur les transferts</li>
+                    <li><strong>Min Transaction:</strong> Montant minimum autorisé</li>
+                    <li><strong>Max Transaction:</strong> Montant maximum autorisé</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

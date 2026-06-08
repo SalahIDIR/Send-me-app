@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - Topili{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <h2><i class="bi bi-lock-fill"></i> Connexion</h2>
+        
+        <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+                <label for="username" class="form-label">Nom d'utilisateur</label>
+                {% if form.username.errors %}
+                    {{ form.username(class="form-control is-invalid") }}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.username.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{ form.username(class="form-control", id="username", placeholder="Entrez votre nom d'utilisateur") }}
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">Mot de passe</label>
+                {% if form.password.errors %}
+                    {{ form.password(class="form-control is-invalid", type="password") }}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.password.errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{ form.password(class="form-control", id="password", placeholder="Entrez votre mot de passe") }}
+                {% endif %}
+            </div>
+            
+            <div class="d-grid">
+                {{ form.submit(class="btn btn-primary btn-lg") }}
+            </div>
+        </form>
+        
+        <hr>
+        
+        <p class="text-center mb-0">
+            Pas de compte? <a href="{{ url_for('register') }}">S'inscrire</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Clients - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-people"></i> Mes Clients</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('add_client') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Ajouter un client
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if clients.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nom d'utilisateur</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Solde</th>
+                        <th>Inscrit le</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients.items %}
+                    <tr>
+                        <td><strong>{{ client.username }}</strong></td>
+                        <td>{{ client.email }}</td>
+                        <td>{{ client.phone or '-' }}</td>
+                        <td>
+                            <strong style="color: var(--primary-color);">{{ "%.2f"|format(client.balance) }} DA</strong>
+                        </td>
+                        <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" 
+                                    data-bs-target="#transferModal" 
+                                    data-client-id="{{ client.id }}"
+                                    data-client-name="{{ client.username }}">
+                                <i class="bi bi-arrow-right"></i> Transférer
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-5">
+            Vous n'avez pas encore de clients. <a href="{{ url_for('add_client') }}">Ajouter un client</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if clients.pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if clients.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('manage_clients', page=clients.prev_num) }}">Précédent</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Précédent</span>
+        </li>
+        {% endif %}
+        
+        {% for page_num in clients.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == clients.page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('manage_clients', page=page_num) }}">{{ page_num }}</a>
+                </li>
+                {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if clients.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('manage_clients', page=clients.next_num) }}">Suivant</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Suivant</span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Modal de transfert rapide -->
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Transférer du crédit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickTransferForm">
+                    <p>Transférer à: <strong id="clientName"></strong></p>
+                    <div class="mb-3">
+                        <label for="transferAmount" class="form-label">Montant (DA)</label>
+                        <input type="number" class="form-control" id="transferAmount" 
+                               placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transferDescription" class="form-label">Description (optionnel)</label>
+                        <textarea class="form-control" id="transferDescription" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <a href="{{ url_for('transfer_credit') }}" class="btn btn-primary">
+                    Aller au transfert détaillé
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('transferModal').addEventListener('show.bs.modal', function(e) {
+    document.getElementById('clientName').textContent = 
+        e.relatedTarget.getAttribute('data-client-name');
+});
+</script>
+{% endblock %}

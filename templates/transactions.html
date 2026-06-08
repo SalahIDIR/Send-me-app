@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Historique des transactions - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-receipt"></i> Historique des transactions</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if transactions.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Expéditeur</th>
+                        <th>Destinataire</th>
+                        <th>Montant</th>
+                        <th>Description</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions.items %}
+                    <tr>
+                        <td>{{ transaction.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if transaction.sender.id == current_user.id %}
+                            <span class="badge" style="background-color: #e74c3c; color: white;">Envoyé</span>
+                            {% else %}
+                            <span class="badge" style="background-color: #2ecc71; color: white;">Reçu</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if transaction.sender.id == current_user.id %}
+                            <strong>{{ transaction.sender.username }} (Vous)</strong>
+                            {% else %}
+                            {{ transaction.sender.username }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if transaction.receiver.id == current_user.id %}
+                            <strong>{{ transaction.receiver.username }} (Vous)</strong>
+                            {% else %}
+                            {{ transaction.receiver.username }}
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ "%.2f"|format(transaction.amount) }} DA</strong></td>
+                        <td>{{ transaction.description }}</td>
+                        <td>
+                            {% if transaction.status == 'completed' %}
+                            <span class="badge badge-success">Complétée</span>
+                            {% elif transaction.status == 'pending' %}
+                            <span class="badge badge-pending">En attente</span>
+                            {% else %}
+                            <span class="badge badge-failed">Échouée</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-5">
+            <i class="bi bi-inbox"></i> Aucune transaction pour le moment.
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if transactions.pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if transactions.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('transactions', page=transactions.prev_num) }}">Précédent</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Précédent</span>
+        </li>
+        {% endif %}
+        
+        {% for page_num in transactions.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == transactions.page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('transactions', page=page_num) }}">{{ page_num }}</a>
+                </li>
+                {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if transactions.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('transactions', page=transactions.next_num) }}">Suivant</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">Suivant</span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

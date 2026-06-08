@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Utilisateurs - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-people"></i> Gestion des Utilisateurs</h1>
+    </div>
+    <div class="col-md-4">
+        <form method="GET" class="d-flex gap-2">
+            <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="{{ search }}">
+            <select name="role" class="form-select">
+                <option value="">Tous les rôles</option>
+                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="pdv" {% if role_filter == 'pdv' %}selected{% endif %}>PdV</option>
+                <option value="client" {% if role_filter == 'client' %}selected{% endif %}>Client</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Filtrer</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if users.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Solde</th>
+                        <th>Inscrit</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users.items %}
+                    <tr>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                            <span class="badge" style="background-color: #e74c3c; color: white;">Admin</span>
+                            {% elif user.role == 'pdv' %}
+                            <span class="badge" style="background-color: #3498db; color: white;">PdV</span>
+                            {% else %}
+                            <span class="badge" style="background-color: #2ecc71; color: white;">Client</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.2f"|format(user.balance) }} DA</td>
+                        <td><small>{{ user.created_at.strftime('%d/%m/%Y') }}</small></td>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge" style="background-color: #2ecc71; color: white;">Actif</span>
+                            {% else %}
+                            <span class="badge" style="background-color: #95a5a6; color: white;">Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i> Voir
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if users.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if users.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_users', page=users.prev_num, role=role_filter, search=search) }}">Précédent</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in users.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == users.page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_users', page=page_num, role=role_filter, search=search) }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if users.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_users', page=users.next_num, role=role_filter, search=search) }}">Suivant</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <p class="text-muted">Aucun utilisateur trouvé.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

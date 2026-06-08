@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Logs d'Audit - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-file-text"></i> Logs d'Audit</h1>
+        <p class="text-muted">Historique de toutes les actions administrateur</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Utilisateur</th>
+                        <th>Action</th>
+                        <th>Description</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs.items %}
+                    <tr>
+                        <td><small>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</small></td>
+                        <td>
+                            {% if log.user %}
+                            <strong>{{ log.user.username }}</strong>
+                            {% else %}
+                            <em class="text-muted">Système</em>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ log.action }}</code></td>
+                        <td><small>{{ log.description or '-' }}</small></td>
+                        <td>
+                            {% if log.status == 'success' %}
+                            <span class="badge badge-success">Succès</span>
+                            {% else %}
+                            <span class="badge badge-failed">Erreur</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if logs.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_audit_logs', page=logs.prev_num) }}">Précédent</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in logs.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == logs.page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_audit_logs', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin_audit_logs', page=logs.next_num) }}">Suivant</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

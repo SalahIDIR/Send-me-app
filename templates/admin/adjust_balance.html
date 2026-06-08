@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Ajuster le solde - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-wallet2"></i> Ajuster le solde de {{ user.username }}</h1>
+        <p class="text-muted">Solde actuel: <strong>{{ "%.2f"|format(user.balance) }} DA</strong></p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Montant (DA)</label>
+                        <p class="text-muted small mb-2">Positif pour ajouter, négatif pour retirer</p>
+                        {% if form.amount.errors %}
+                            {{ form.amount(class="form-control is-invalid") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.amount.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.amount(class="form-control", placeholder="Ex: 1000 ou -500") }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Raison de l'ajustement</label>
+                        {% if form.reason.errors %}
+                            {{ form.reason(class="form-control is-invalid", rows="4") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.reason.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.reason(class="form-control", rows="4", placeholder="Expliquez pourquoi cette modification...") }}
+                        {% endif %}
+                    </div>
+                    
+                    <div id="preview" class="alert alert-info mb-3" style="display:none;">
+                        Nouveau solde: <strong><span id="preview-balance">{{ "%.2f"|format(user.balance) }}</span> DA</strong>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('amount').addEventListener('keyup', function() {
+    const amount = parseFloat(this.value) || 0;
+    const current = {{ user.balance }};
+    const newBalance = current + amount;
+    
+    const preview = document.getElementById('preview');
+    const previewBalance = document.getElementById('preview-balance');
+    
+    if (amount !== 0) {
+        previewBalance.textContent = newBalance.toFixed(2);
+        preview.style.display = 'block';
+        
+        if (newBalance < 0) {
+            preview.className = 'alert alert-danger mb-3';
+        } else {
+            preview.className = 'alert alert-info mb-3';
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

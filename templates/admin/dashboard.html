@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord Admin - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-speedometer2"></i> Tableau de bord Admin</h1>
+        <p class="text-muted">Vue globale de l'application Topili</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5><i class="bi bi-people"></i> Total Utilisateurs</h5>
+            <div class="amount">{{ total_users }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5><i class="bi bi-shop"></i> Points de Vente</h5>
+            <div class="amount">{{ total_pdv }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5><i class="bi bi-person-check"></i> Clients</h5>
+            <div class="amount">{{ total_clients }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5><i class="bi bi-arrow-left-right"></i> Transactions</h5>
+            <div class="amount">{{ total_transactions }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h5><i class="bi bi-cash-coin"></i> Volume Total</h5>
+            <div class="amount" style="font-size: 1.8rem;">{{ "%.2f"|format(total_volume) }} DA</div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> Top 5 Points de Vente
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Transactions</th>
+                                <th>Volume Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pdv in top_pdv %}
+                            <tr>
+                                <td><strong>{{ pdv.username }}</strong></td>
+                                <td>{{ pdv.tx_count }}</td>
+                                <td>{{ "%.2f"|format(pdv.total_amount or 0) }} DA</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-receipt"></i> Transactions Récentes
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>De</th>
+                                <th>À</th>
+                                <th>Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in recent_transactions[:5] %}
+                            <tr>
+                                <td><small>{{ tx.created_at.strftime('%d/%m %H:%M') }}</small></td>
+                                <td><small>{{ tx.sender.username }}</small></td>
+                                <td><small>{{ tx.receiver.username }}</small></td>
+                                <td><strong>{{ "%.2f"|format(tx.amount) }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5>Menu Admin</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-people"></i> Gérer Utilisateurs
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_transactions') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-receipt"></i> Transactions
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_reports') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-graph-up"></i> Rapports
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_operators') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-telephone"></i> Opérateurs
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_settings') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-gear"></i> Paramètres
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_audit_logs') }}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                            <i class="bi bi-file-text"></i> Audit Logs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

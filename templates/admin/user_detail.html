@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Détails Utilisateur - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-person-circle"></i> {{ user.username }}</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Informations
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Email:</strong></div>
+                    <div class="col-sm-8">{{ user.email }}</div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Téléphone:</strong></div>
+                    <div class="col-sm-8">{{ user.phone or '-' }}</div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Rôle:</strong></div>
+                    <div class="col-sm-8">
+                        {% if user.role == 'admin' %}
+                        <span class="badge" style="background-color: #e74c3c; color: white;">Admin</span>
+                        {% elif user.role == 'pdv' %}
+                        <span class="badge" style="background-color: #3498db; color: white;">Point de Vente</span>
+                        {% else %}
+                        <span class="badge" style="background-color: #2ecc71; color: white;">Client</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Solde:</strong></div>
+                    <div class="col-sm-8">
+                        <strong style="color: var(--primary-color); font-size: 1.2rem;">{{ "%.2f"|format(user.balance) }} DA</strong>
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Statut:</strong></div>
+                    <div class="col-sm-8">
+                        {% if user.is_active %}
+                        <span class="badge" style="background-color: #2ecc71; color: white;">Actif</span>
+                        {% else %}
+                        <span class="badge" style="background-color: #95a5a6; color: white;">Inactif</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-0">
+                    <div class="col-sm-4"><strong>Inscrit:</strong></div>
+                    <div class="col-sm-8">{{ user.created_at.strftime('%d/%m/%Y à %H:%M') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-arrow-left-right"></i> Statistiques
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Transactions envoyées:</strong><br>
+                        <div style="font-size: 1.5rem; color: var(--primary-color);">{{ sent_txs }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Transactions reçues:</strong><br>
+                        <div style="font-size: 1.5rem; color: var(--primary-color);">{{ received_txs }}</div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <strong>Volume envoyé:</strong><br>
+                        <strong>{{ "%.2f"|format(sent_volume) }} DA</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Volume reçu:</strong><br>
+                        <strong>{{ "%.2f"|format(received_volume) }} DA</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-tools"></i> Actions
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin_toggle_user_status', user_id=user.id) }}" class="mb-2">
+                    {% if user.is_active %}
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-lock"></i> Désactiver le compte
+                    </button>
+                    {% else %}
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-unlock"></i> Activer le compte
+                    </button>
+                    {% endif %}
+                </form>
+                
+                <a href="{{ url_for('admin_adjust_balance', user_id=user.id) }}" class="btn btn-primary w-100">
+                    <i class="bi bi-wallet2"></i> Ajuster le solde
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if clients %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-people"></i> Clients ({{ clients|length }})
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Solde</th>
+                                <th>Inscrit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in clients %}
+                            <tr>
+                                <td><strong>{{ client.username }}</strong></td>
+                                <td>{{ client.email }}</td>
+                                <td>{{ "%.2f"|format(client.balance) }} DA</td>
+                                <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-receipt"></i> Transactions Récentes
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Correspondant</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in recent_transactions %}
+                            <tr>
+                                <td><small>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                                <td>
+                                    {% if tx.sender_id == user.id %}
+                                    <span class="badge" style="background-color: #e74c3c; color: white;">Envoyé</span>
+                                    {% else %}
+                                    <span class="badge" style="background-color: #2ecc71; color: white;">Reçu</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if tx.sender_id == user.id %}
+                                    {{ tx.receiver.username }}
+                                    {% else %}
+                                    {{ tx.sender.username }}
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ "%.2f"|format(tx.amount) }} DA</strong></td>
+                                <td>
+                                    {% if tx.status == 'completed' %}
+                                    <span class="badge badge-success">Complétée</span>
+                                    {% else %}
+                                    <span class="badge" style="background-color: #f39c12; color: white;">{{ tx.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Aucune transaction.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

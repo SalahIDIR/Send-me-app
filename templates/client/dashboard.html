@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord Client - Topili{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
+        <p class="text-muted">Bienvenue {{ current_user.username }}!</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="stats-card">
+            <h5><i class="bi bi-wallet2"></i> Votre Solde</h5>
+            <div class="amount">{{ "%.2f"|format(current_user.balance) }} <span style="font-size: 1rem;">DA</span></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <h5><i class="bi bi-arrow-up"></i> Total Envoyé</h5>
+            <div class="amount">{{ "%.2f"|format(sent_amount) }} <span style="font-size: 1rem;">DA</span></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <h5><i class="bi bi-arrow-down"></i> Total Reçu</h5>
+            <div class="amount">{{ "%.2f"|format(received_amount) }} <span style="font-size: 1rem;">DA</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-arrow-left-right"></i> Transactions Récentes
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Correspondant</th>
+                                <th>Montant</th>
+                                <th>Description</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    {% if transaction.sender.id == current_user.id %}
+                                    <span class="badge" style="background-color: #e74c3c; color: white;">Envoyé</span>
+                                    {% else %}
+                                    <span class="badge" style="background-color: #2ecc71; color: white;">Reçu</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.sender.id == current_user.id %}
+                                    {{ transaction.receiver.username }}
+                                    {% else %}
+                                    {{ transaction.sender.username }}
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ "%.2f"|format(transaction.amount) }} DA</strong></td>
+                                <td>{{ transaction.description }}</td>
+                                <td>
+                                    {% if transaction.status == 'completed' %}
+                                    <span class="badge badge-success">Complétée</span>
+                                    {% elif transaction.status == 'pending' %}
+                                    <span class="badge badge-pending">En attente</span>
+                                    {% else %}
+                                    <span class="badge badge-failed">Échouée</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Aucune transaction pour le moment.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <a href="{{ url_for('send_credit') }}" class="btn btn-primary">
+            <i class="bi bi-arrow-right"></i> Envoyer du crédit
+        </a>
+        <a href="{{ url_for('transactions') }}" class="btn btn-secondary">
+            <i class="bi bi-receipt"></i> Voir l'historique complet
+        </a>
+    </div>
+</div>
+{% endblock %}
