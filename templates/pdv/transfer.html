@@ -14,8 +14,9 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-body">
-                <form method="POST" novalidate>
+                <form method="POST" novalidate id="transferForm">
                     {{ form.hidden_tag() }}
+                    <input type="hidden" name="form_token" value="{{ form_token }}">
                     
                     <div class="mb-3">
                         <label for="client_id" class="form-label">Client destinataire</label>
@@ -65,7 +66,7 @@
                     </div>
                     
                     <div class="d-flex gap-2">
-                        {{ form.submit(class="btn btn-primary", value="Envoyer le crédit") }}
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Envoyer le crédit</button>
                         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Annuler</a>
                     </div>
                 </form>
@@ -88,6 +89,12 @@
 </div>
 
 <script>
+document.getElementById('transferForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+});
+
 document.querySelectorAll('#client_id, #amount').forEach(el => {
     el.addEventListener('change', updateSummary);
     el.addEventListener('keyup', updateSummary);

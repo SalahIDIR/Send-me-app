@@ -2,14 +2,16 @@
 Application Flask principale pour Topili
 """
 import os
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
+import uuid
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 from functools import wraps
 
 from config import config
 from models import db, User, Transaction, Operator, AuditLog, SystemSetting, PdVCommission
-from forms import (LoginForm, RegisterForm, TransferCreditForm, 
+from forms import (LoginForm, RegisterForm, TransferCreditForm,
+                   SendCreditByPhoneForm,
                    AddClientForm, ProfileUpdateForm, ChangePasswordForm,
                    AdjustUserBalanceForm, AddOperatorForm, SystemSettingForm, CreateAdminForm)
 
@@ -19,6 +21,19 @@ app.config.from_object(config['development'])
 
 # Initialisation des extensions
 db.init_app(app)
+
+# ==================== Protection contre les soumissions dupliquées ====================
+
+def generate_form_token():
+    """Génère un token unique par affichage de formulaire et le stocke en session."""
+    token = str(uuid.uuid4())
+    session['form_token'] = token
+    return token
+
+def consume_form_token(token):
+    """Vérifie et consomme le token. Retourne False si déjà utilisé ou invalide."""
+    expected = session.pop('form_token', None)
+    return expected is not None and expected == token
 
 # Configuration Flask-Login
 login_manager = LoginManager()
@@ -263,21 +278,25 @@ def add_client():
 def transfer_credit():
     """Transférer du crédit à un client"""
     form = TransferCreditForm()
-    
-    # Récupérer les clients du PdV
+
     form.client_id.choices = [(c.id, f"{c.username} (Solde: {c.balance:.2f} DA)")
                                for c in User.query.filter_by(pdv_id=current_user.id, role='client').all()]
-    
+
     if form.validate_on_submit():
+        submitted_token = request.form.get('form_token', '')
+        if not consume_form_token(submitted_token):
+            flash('Opération déjà effectuée ou formulaire expiré.', 'warning')
+            return redirect(url_for('transfer_credit'))
+
         client = User.query.get(form.client_id.data)
-        
+
         if not client or client.pdv_id != current_user.id:
             flash('Client invalide.', 'danger')
             return redirect(url_for('transfer_credit'))
-        
+
         if current_user.subtract_balance(form.amount.data):
             client.add_balance(form.amount.data)
-            
+
             transaction = Transaction(
                 sender_id=current_user.id,
                 receiver_id=client.id,
@@ -285,71 +304,63 @@ def transfer_credit():
                 description=form.description.data or 'Transfert de crédit',
                 status='completed'
             )
-            
             db.session.add(transaction)
             db.session.commit()
-            
+
             flash(f'Transfert de {form.amount.data:.2f} DA vers {client.username} réussi!', 'success')
             return redirect(url_for('dashboard'))
         else:
             flash('Solde insuffisant pour effectuer ce transfert.', 'danger')
-    
-    return render_template('pdv/transfer.html', form=form)
+
+    form_token = generate_form_token()
+    return render_template('pdv/transfer.html', form=form, form_token=form_token)
 
 # ==================== Routes pour Clients ====================
+
+def _do_send_credit_to_phone(phone_number, amount):
+    """Placeholder — logique d'envoi de crédit vers un numéro à implémenter."""
+    pass
+
 
 @app.route('/client/send-credit', methods=['GET', 'POST'])
 @login_required
 @role_required('client')
 def send_credit():
-    """Envoyer du crédit à un particulier"""
-    # Pour le moment, on considère qu'un client ne peut envoyer qu'à d'autres clients
-    # du même PdV (les particuliers n'ont pas de compte)
-    
-    page = request.args.get('page', 1, type=int)
-    
-    if request.method == 'POST':
-        receiver_id = request.form.get('receiver_id', type=int)
-        amount = request.form.get('amount', type=float)
-        description = request.form.get('description', '')
-        
-        receiver = User.query.get(receiver_id)
-        
-        if not receiver or receiver.pdv_id != current_user.pdv_id:
-            flash('Destinataire invalide.', 'danger')
+    """Envoyer du crédit vers un numéro de téléphone"""
+    form = SendCreditByPhoneForm()
+
+    if form.validate_on_submit():
+        submitted_token = request.form.get('form_token', '')
+        if not consume_form_token(submitted_token):
+            flash('Opération déjà effectuée ou formulaire expiré.', 'warning')
             return redirect(url_for('send_credit'))
-        
-        if receiver.id == current_user.id:
-            flash('Vous ne pouvez pas envoyer du crédit à vous-même.', 'danger')
-            return redirect(url_for('send_credit'))
-        
-        if current_user.subtract_balance(amount):
-            receiver.add_balance(amount)
-            
-            transaction = Transaction(
-                sender_id=current_user.id,
-                receiver_id=receiver.id,
-                amount=amount,
-                description=description or 'Transfert de crédit',
-                status='completed'
-            )
-            
-            db.session.add(transaction)
-            db.session.commit()
-            
-            flash(f'Transfert de {amount:.2f} DA vers {receiver.username} réussi!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
+
+        phone = form.phone_number.data.strip()
+        amount = form.amount.data
+
+        if not current_user.subtract_balance(amount):
             flash('Solde insuffisant.', 'danger')
-    
-    # Récupérer les autres clients du même PdV
-    other_clients = User.query.filter(
-        User.pdv_id == current_user.pdv_id,
-        User.role == 'client',
-        User.id != current_user.id
-    ).paginate(page=page, per_page=20)
-    
-    return render_template('client/send_credit.html', other_clients=other_clients)
+            form_token = generate_form_token()
+            return render_template('client/send_credit.html', form=form, form_token=form_token)
+
+        transaction = Transaction(
+            sender_id=current_user.id,
+            receiver_id=current_user.id,
+            recipient_phone=phone,
+            amount=amount,
+            description=f'Envoi crédit -> {phone}',
+            status='pending'
+        )
+        db.session.add(transaction)
+        db.session.commit()
+
+        _do_send_credit_to_phone(phone, amount)
+
+        flash(f'{amount:.2f} DA envoyés vers le {phone}.', 'success')
+        return redirect(url_for('dashboard'))
+
+    form_token = generate_form_token()
+    return render_template('client/send_credit.html', form=form, form_token=form_token)
 
 # ==================== Routes de transactions ====================
 

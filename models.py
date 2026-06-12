@@ -4,7 +4,7 @@ Modèles de données pour l'application Topili
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timezone
 
 db = SQLAlchemy()
 
@@ -31,8 +31,8 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
     # Dates
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relations
     clients = db.relationship('User', backref=db.backref('pdv', remote_side=[id]), 
@@ -53,15 +53,18 @@ class User(UserMixin, db.Model):
     def add_balance(self, amount):
         """Ajouter au solde"""
         self.balance += amount
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
     
     def subtract_balance(self, amount):
-        """Soustraire du solde"""
-        if self.balance >= amount:
-            self.balance -= amount
-            self.updated_at = datetime.utcnow()
-            return True
-        return False
+        """Soustraire du solde de façon atomique (protège contre les écritures simultanées)"""
+        updated = db.session.query(User).filter(
+            User.id == self.id,
+            User.balance >= amount
+        ).update(
+            {"balance": User.balance - amount, "updated_at": datetime.now(timezone.utc)},
+            synchronize_session="fetch"
+        )
+        return updated > 0
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -77,15 +80,18 @@ class Transaction(db.Model):
     
     # Montant en DA (Dinar Algérien)
     amount = db.Column(db.Float, nullable=False)
-    
+
+    # Numéro de téléphone destinataire (pour les envois de crédit vers l'extérieur)
+    recipient_phone = db.Column(db.String(20), nullable=True)
+
     # Description/Raison de la transaction
     description = db.Column(db.String(255))
-    
+
     # Statut: 'completed', 'pending', 'failed'
     status = db.Column(db.String(20), default='completed', nullable=False)
     
     # Date de création
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     
     def __repr__(self):
         return f'<Transaction {self.id}: {self.sender_id} -> {self.receiver_id} : {self.amount}>'
@@ -101,7 +107,7 @@ class Operator(db.Model):
     description = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     def __repr__(self):
         return f'<Operator {self.name}>'
@@ -117,7 +123,7 @@ class AuditLog(db.Model):
     description = db.Column(db.Text)
     ip_address = db.Column(db.String(50))
     status = db.Column(db.String(20), default='success')  # success, error
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     
     user = db.relationship('User', backref='audit_logs')
     
@@ -149,7 +155,7 @@ class PdVCommission(db.Model):
     amount = db.Column(db.Float, nullable=False)
     rate = db.Column(db.Float, default=2.0)  # Pourcentage
     paid = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     pdv = db.relationship('User', backref='commissions')
     transaction = db.relationship('Transaction', backref='commission')

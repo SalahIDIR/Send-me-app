@@ -5,172 +5,67 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
-        <h1><i class="bi bi-arrow-right"></i> Envoyer du crédit</h1>
-        <p class="text-muted">Transférer votre crédit à d'autres clients</p>
+        <h1><i class="bi bi-phone-fill"></i> Envoyer du crédit</h1>
+        <p class="text-muted">Rechargez le téléphone d'une personne par son numéro</p>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Votre solde disponible
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info mb-0">
-                    <h5>Solde: <strong style="color: var(--primary-color);">{{ "%.2f"|format(current_user.balance) }} DA</strong></h5>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card mt-4">
-            <div class="card-header">
-                <i class="bi bi-people"></i> Autres clients disponibles
-            </div>
-            <div class="card-body">
-                {% if other_clients.items %}
-                <div class="table-responsive">
-                    <table class="table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Nom d'utilisateur</th>
-                                <th>Solde actuel</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for client in other_clients.items %}
-                            <tr>
-                                <td>{{ client.username }}</td>
-                                <td>{{ "%.2f"|format(client.balance) }} DA</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" 
-                                            data-bs-target="#transferModal" 
-                                            data-client-id="{{ client.id }}"
-                                            data-client-name="{{ client.username }}">
-                                        <i class="bi bi-arrow-right"></i> Envoyer
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted text-center py-5">
-                    Aucun autre client disponible pour le moment.
-                </p>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Pagination -->
-        {% if other_clients.pages > 1 %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if other_clients.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('send_credit', page=other_clients.prev_num) }}">Précédent</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Précédent</span>
-                </li>
-                {% endif %}
-                
-                {% for page_num in other_clients.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num == other_clients.page %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('send_credit', page=page_num) }}">{{ page_num }}</a>
-                        </li>
-                        {% endif %}
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-                
-                {% if other_clients.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('send_credit', page=other_clients.next_num) }}">Suivant</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">Suivant</span>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-lightbulb"></i> Conseils
-            </div>
-            <div class="card-body">
-                <h6>Comment envoyer du crédit:</h6>
-                <ol>
-                    <li>Sélectionnez le client destinataire</li>
-                    <li>Cliquez sur "Envoyer"</li>
-                    <li>Entrez le montant à transférer</li>
-                    <li>Confirmez l'opération</li>
-                </ol>
-                <hr>
-                <div class="alert alert-warning">
-                    <strong>⚠️ Attention:</strong> Une fois envoyé, le crédit ne peut pas être annulé.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="row justify-content-center">
+    <div class="col-md-6">
 
-<!-- Modal de transfert -->
-<div class="modal fade" id="transferModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" novalidate>
-                <div class="modal-header">
-                    <h5 class="modal-title">Envoyer du crédit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Destinataire: <strong id="clientName"></strong></p>
-                    <input type="hidden" id="receiverId" name="receiver_id" value="">
-                    
-                    <div class="mb-3">
-                        <label for="transferAmount" class="form-label">Montant (DA)</label>
-                        <input type="number" class="form-control" id="transferAmount" 
-                               name="amount" placeholder="0.00" step="0.01" min="0" required>
-                        <small class="text-muted">Solde disponible: {{ "%.2f"|format(current_user.balance) }} DA</small>
-                    </div>
-                    <div class="mb-3">
-                        <label for="transferDescription" class="form-label">Description (optionnel)</label>
-                        <textarea class="form-control" id="transferDescription" name="description" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Confirmer l'envoi</button>
-                </div>
-            </form>
+        <div class="card mb-3">
+            <div class="card-body">
+                <span class="text-muted">Solde disponible</span>
+                <h4 class="mb-0" style="color: var(--primary-color);">{{ "%.2f"|format(current_user.balance) }} DA</h4>
+            </div>
         </div>
-    </div>
-</div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-arrow-right-circle"></i> Nouveau transfert
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate id="sendForm">
+                    {{ form.hidden_tag() }}
+                    <input type="hidden" name="form_token" value="{{ form_token }}">
+
+                    <div class="mb-3">
+                        {{ form.phone_number.label(class="form-label") }}
+                        {{ form.phone_number(class="form-control" + (" is-invalid" if form.phone_number.errors else ""),
+                                             placeholder="0661234567", maxlength=10) }}
+                        {% for error in form.phone_number.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.amount.label(class="form-label") }}
+                        {{ form.amount(class="form-control" + (" is-invalid" if form.amount.errors else ""),
+                                       placeholder="100", step="1", min="1") }}
+                        {% for error in form.amount.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="alert alert-warning py-2">
+                        <small><i class="bi bi-exclamation-triangle"></i> Une fois envoyé, le crédit ne peut pas être annulé.</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                        Envoyer le crédit
+                    </button>
+                </form>
 
 <script>
-document.getElementById('transferModal').addEventListener('show.bs.modal', function(e) {
-    const clientId = e.relatedTarget.getAttribute('data-client-id');
-    const clientName = e.relatedTarget.getAttribute('data-client-name');
-    document.getElementById('receiverId').value = clientId;
-    document.getElementById('clientName').textContent = clientName;
+document.getElementById('sendForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
 });
 </script>
+            </div>
+        </div>
+
+    </div>
+</div>
 {% endblock %}
