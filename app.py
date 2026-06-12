@@ -704,6 +704,60 @@ def admin_audit_logs():
     
     return render_template('admin/audit_logs.html', logs=logs, user_filter=user_filter)
 
+# ==================== API Worker (endpoints internes) ====================
+
+def worker_token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('X-Worker-Token', '')
+        if token != app.config['WORKER_TOKEN']:
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/api/worker/pending', methods=['GET'])
+@worker_token_required
+def api_worker_pending():
+    """Retourne les transactions en attente d'envoi physique."""
+    pending = Transaction.query.filter_by(status='pending').filter(
+        Transaction.recipient_phone.isnot(None)
+    ).order_by(Transaction.created_at.asc()).limit(20).all()
+
+    return jsonify({
+        'transactions': [
+            {
+                'id': tx.id,
+                'recipient_phone': tx.recipient_phone,
+                'amount': tx.amount,
+                'created_at': tx.created_at.isoformat(),
+            }
+            for tx in pending
+        ]
+    })
+
+
+@app.route('/api/worker/update/<int:tx_id>', methods=['POST'])
+@worker_token_required
+def api_worker_update(tx_id):
+    """Met à jour le statut d'une transaction après exécution par le worker."""
+    tx = Transaction.query.get_or_404(tx_id)
+
+    if tx.status != 'pending':
+        return jsonify({'error': 'Transaction non pending'}), 409
+
+    data = request.get_json(silent=True) or {}
+    new_status = data.get('status')
+
+    if new_status not in ('completed', 'failed'):
+        return jsonify({'error': 'Statut invalide (completed ou failed)'}), 400
+
+    tx.status = new_status
+    db.session.commit()
+
+    return jsonify({'ok': True, 'id': tx_id, 'status': new_status})
+
+
 # ==================== Routes d'erreur ====================
 
 @app.errorhandler(404)

@@ -1,0 +1,22 @@
+[Unit]
+Description=Topili Worker — envoi de crédit via modem GSM
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=topili
+WorkingDirectory=/opt/topili-worker
+EnvironmentFile=/opt/topili-worker/.env
+ExecStart=/opt/topili-worker/venv/bin/python worker.py
+
+# Redémarrage automatique si le worker plante
+Restart=on-failure
+RestartSec=10
+
+# Logs accessibles via : journalctl -u topili-worker -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

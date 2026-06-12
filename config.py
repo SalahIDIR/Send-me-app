@@ -3,12 +3,16 @@ Configuration Flask pour l'application Topili
 """
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
     """Configuration de base"""
     SQLALCHEMY_DATABASE_URI = 'sqlite:///topili.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    WORKER_TOKEN = os.environ.get('WORKER_TOKEN', 'worker-secret-token-change-in-production')
     
     # Session
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
