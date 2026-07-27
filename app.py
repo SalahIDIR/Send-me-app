@@ -143,28 +143,6 @@ def login():
     
     return render_template('auth/login.html', form=form)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    """Page d'enregistrement (pour les clients)"""
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    
-    form = RegisterForm()
-    if form.validate_on_submit():
-        user = User(
-            username=form.username.data,
-            email=form.email.data,
-            phone=form.phone.data,
-            role='client'
-        )
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        
-        flash('Inscription réussie! Veuillez vous connecter.', 'success')
-        return redirect(url_for('login'))
-    
-    return render_template('auth/register.html', form=form)
 
 @app.route('/logout')
 @login_required
@@ -247,33 +225,11 @@ def add_client():
             role='client',
             pdv_id=current_user.id
         )
-        user.set_password('temp123456')  # Mot de passe temporaire
-        
-        # Ajouter le solde initial au client sur l'opérateur sélectionné
-        user.add_balance(form.amount.data, form.operator.data)
-        
-        # Soustraire du solde du PdV
-        if current_user.subtract_balance(form.amount.data, form.operator.data):
-            db.session.add(user)
-            
-            # Créer une transaction
-            transaction = Transaction(
-                sender_id=current_user.id,
-                receiver_id=user.id,
-                operator=form.operator.data,
-                amount=form.amount.data,
-                description='Création du compte client',
-                status='completed'
-            )
-            db.session.add(transaction)
-            db.session.commit()
-            
-            flash(f'Client {user.username} créé avec succès! Mot de passe temporaire: temp123456', 'success')
-            return redirect(url_for('manage_clients'))
-        else:
-            flash(f'Solde insuffisant sur l\'opérateur {form.operator.data.title()} pour créer ce client.', 'danger')
-            # Annuler l'ajout du solde au user si la soustraction du PdV a échoué
-            user.subtract_balance(form.amount.data, form.operator.data)
+        user.set_password('temp123456')
+        db.session.add(user)
+        db.session.commit()
+        flash(f'Client {user.username} créé avec succès ! Mot de passe temporaire : temp123456', 'success')
+        return redirect(url_for('manage_clients'))
     
     return render_template('pdv/add_client.html', form=form)
 
@@ -284,8 +240,10 @@ def transfer_credit():
     """Transférer du crédit à un client"""
     form = TransferCreditForm()
 
-    form.client_id.choices = [(c.id, f"{c.username} (Solde total: {c.get_total_balance():.2f} DA)")
-                               for c in User.query.filter_by(pdv_id=current_user.id, role='client').all()]
+    form.client_id.choices = [(0, '— Sélectionner un client —')] + [
+        (c.id, f"{c.username} (Solde total: {c.get_total_balance():.2f} DA)")
+        for c in User.query.filter_by(pdv_id=current_user.id, role='client').all()
+    ]
 
     if form.validate_on_submit():
         submitted_token = request.form.get('form_token', '')
@@ -299,24 +257,50 @@ def transfer_credit():
             flash('Client invalide.', 'danger')
             return redirect(url_for('transfer_credit'))
 
-        if current_user.subtract_balance(form.amount.data, form.operator.data):
-            client.add_balance(form.amount.data, form.operator.data)
+        operator_amounts = {
+            'djezzy': float(form.amount_djezzy.data or 0),
+            'ooredoo': float(form.amount_ooredoo.data or 0),
+            'mobilis': float(form.amount_mobilis.data or 0),
+        }
 
-            transaction = Transaction(
-                sender_id=current_user.id,
-                receiver_id=client.id,
-                operator=form.operator.data,
-                amount=form.amount.data,
-                description=form.description.data or 'Transfert de crédit',
-                status='completed'
-            )
-            db.session.add(transaction)
+        if not any(amount > 0 for amount in operator_amounts.values()):
+            flash('Veuillez saisir au moins un montant supérieur à 0.', 'warning')
+            return render_template('pdv/transfer.html', form=form, form_token=generate_form_token())
+
+        for operator, amount in operator_amounts.items():
+            if amount > 0 and current_user.get_balance_by_operator(operator) < amount:
+                flash(f'Solde insuffisant pour {operator.title()} pour effectuer ce transfert.', 'danger')
+                return render_template('pdv/transfer.html', form=form, form_token=generate_form_token())
+
+        try:
+            for operator, amount in operator_amounts.items():
+                if amount <= 0:
+                    continue
+
+                if not current_user.subtract_balance(amount, operator):
+                    raise ValueError(f'Solde insuffisant ou transaction impossible pour {operator.title()}')
+
+                client.add_balance(amount, operator)
+
+                transaction = Transaction(
+                    sender_id=current_user.id,
+                    receiver_id=client.id,
+                    operator=operator,
+                    amount=amount,
+                    description=form.description.data or 'Transfert de crédit',
+                    status='completed'
+                )
+                db.session.add(transaction)
+
             db.session.commit()
+        except Exception:
+            db.session.rollback()
+            flash('Erreur lors du transfert. Aucune modification n\'a été appliquée.', 'danger')
+            return render_template('pdv/transfer.html', form=form, form_token=generate_form_token())
 
-            flash(f'Transfert de {form.amount.data:.2f} DA vers {client.username} (opérateur: {form.operator.data.title()}) réussi!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Solde insuffisant pour effectuer ce transfert sur l\'opérateur sélectionné.', 'danger')
+        transfers = [f'{operator.title()}: {amount:.2f} DA' for operator, amount in operator_amounts.items() if amount > 0]
+        flash(f'Transfert effectué vers {client.username}: ' + ' | '.join(transfers), 'success')
+        return redirect(url_for('dashboard'))
 
     form_token = generate_form_token()
     return render_template('pdv/transfer.html', form=form, form_token=form_token)
@@ -695,17 +679,15 @@ def admin_settings():
     form = SystemSettingForm()
     
     if form.validate_on_submit():
-        set_setting('commission_rate', form.commission_rate.data, 'number', 'Taux de commission')
         set_setting('max_transaction', form.max_transaction.data, 'number', 'Montant max par transaction')
         set_setting('min_transaction', form.min_transaction.data, 'number', 'Montant min par transaction')
-        
+
         log_audit('ADMIN_SETTINGS_UPDATE', 'Paramètres système mis à jour')
-        
+
         flash('Paramètres sauvegardés!', 'success')
         return redirect(url_for('admin_settings'))
-    
+
     elif request.method == 'GET':
-        form.commission_rate.data = get_setting('commission_rate', 2.0)
         form.max_transaction.data = get_setting('max_transaction', 1000000)
         form.min_transaction.data = get_setting('min_transaction', 100)
     

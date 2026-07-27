@@ -2,6 +2,7 @@
 
 {% block title %}Transférer du crédit - Topili{% endblock %}
 
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
@@ -19,45 +20,65 @@
                     <input type="hidden" name="form_token" value="{{ form_token }}">
                     
                     <div class="mb-3">
-                        <label for="client_id" class="form-label">Client destinataire</label>
-                        {% if form.client_id.errors %}
-                            {{ form.client_id(class="form-select is-invalid") }}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.client_id.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.client_id(class="form-select", id="client_id") }}
-                        {% endif %}
+                        <label class="form-label">Client destinataire</label>
+                        {# Champ caché pour la soumission du formulaire #}
+                        {{ form.client_id(style="display:none", id="client_id") }}
+
+                        <div class="position-relative">
+                            <input type="text" id="clientSearch"
+                                   class="form-control {{ 'is-invalid' if form.client_id.errors else '' }}"
+                                   placeholder="Rechercher un client..."
+                                   autocomplete="off">
+                            <ul id="clientDropdown"
+                                class="list-group position-absolute w-100 shadow-sm"
+                                style="display:none; z-index:1000; max-height:220px; overflow-y:auto;">
+                            </ul>
+                        </div>
+                        {% for error in form.client_id.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="operator" class="form-label">Opérateur</label>
-                        {% if form.operator.errors %}
-                            {{ form.operator(class="form-select is-invalid") }}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.operator.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.operator(class="form-select") }}
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Montant (DA)</label>
-                        {% if form.amount.errors %}
-                            {{ form.amount(class="form-control is-invalid", step="0.01", min="0") }}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.amount.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.amount(class="form-control", id="amount", placeholder="0.00", step="0.01", min="0") }}
-                        {% endif %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="amount_djezzy" class="form-label">Djezzy (DA)</label>
+                            {% if form.amount_djezzy.errors %}
+                                {{ form.amount_djezzy(class="form-control is-invalid", step="0.01", min="0", id="amount_djezzy", placeholder="0.00") }}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.amount_djezzy.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.amount_djezzy(class="form-control", id="amount_djezzy", placeholder="0.00", step="0.01", min="0") }}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="amount_ooredoo" class="form-label">Ooredoo (DA)</label>
+                            {% if form.amount_ooredoo.errors %}
+                                {{ form.amount_ooredoo(class="form-control is-invalid", step="0.01", min="0", id="amount_ooredoo", placeholder="0.00") }}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.amount_ooredoo.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.amount_ooredoo(class="form-control", id="amount_ooredoo", placeholder="0.00", step="0.01", min="0") }}
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="amount_mobilis" class="form-label">Mobilis (DA)</label>
+                            {% if form.amount_mobilis.errors %}
+                                {{ form.amount_mobilis(class="form-control is-invalid", step="0.01", min="0", id="amount_mobilis", placeholder="0.00") }}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.amount_mobilis.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.amount_mobilis(class="form-control", id="amount_mobilis", placeholder="0.00", step="0.01", min="0") }}
+                            {% endif %}
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -74,9 +95,31 @@
                         {% endif %}
                     </div>
                     
-                    <div class="alert alert-info" role="alert">
-                        <i class="bi bi-info-circle"></i> 
-                        <strong>Solde actuel:</strong> {{ "%.2f"|format(current_user.get_total_balance()) }} DA
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="card text-center balance-card" style="transition: all 0.2s;">
+                                <div class="card-body py-2">
+                                    <div class="fw-bold" style="color:#e30613;">Djezzy</div>
+                                    <div class="fs-6">{{ "%.2f"|format(current_user.balance_djezzy) }} DA</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card text-center balance-card" style="transition: all 0.2s;">
+                                <div class="card-body py-2">
+                                    <div class="fw-bold" style="color:#8b1a8b;">Nedjma</div>
+                                    <div class="fs-6">{{ "%.2f"|format(current_user.balance_ooredoo) }} DA</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card text-center balance-card" style="transition: all 0.2s;">
+                                <div class="card-body py-2">
+                                    <div class="fw-bold" style="color:#f7941d;">Mobilis</div>
+                                    <div class="fs-6">{{ "%.2f"|format(current_user.balance_mobilis) }} DA</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="d-flex gap-2">
@@ -103,37 +146,105 @@
 </div>
 
 <script>
+// Récupère les options du select caché (sauf l'option vide)
+const hiddenSelect = document.getElementById('client_id');
+const clientOptions = Array.from(hiddenSelect.options).filter(o => o.value !== '0');
+
+const searchInput  = document.getElementById('clientSearch');
+const dropdown     = document.getElementById('clientDropdown');
+
+function renderDropdown(filter) {
+    const q = filter.toLowerCase();
+    const matches = clientOptions.filter(o => o.text.toLowerCase().includes(q));
+    dropdown.innerHTML = '';
+    if (matches.length === 0) {
+        dropdown.innerHTML = '<li class="list-group-item text-muted">Aucun résultat</li>';
+    } else {
+        matches.forEach(o => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-action';
+            li.textContent = o.text;
+            li.dataset.value = o.value;
+            li.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                hiddenSelect.value = o.value;
+                searchInput.value  = o.text;
+                dropdown.style.display = 'none';
+                updateSummary();
+            });
+            dropdown.appendChild(li);
+        });
+    }
+    dropdown.style.display = 'block';
+}
+
+searchInput.addEventListener('focus', function() {
+    renderDropdown(this.value);
+});
+
+searchInput.addEventListener('input', function() {
+    hiddenSelect.value = '0';
+    renderDropdown(this.value);
+});
+
+searchInput.addEventListener('blur', function() {
+    setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+});
+
 document.getElementById('transferForm').addEventListener('submit', function() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = 'Envoi en cours...';
 });
 
-document.querySelectorAll('#client_id, #amount').forEach(el => {
+const OPERATOR_LABELS = {
+    'djezzy': 'Djezzy',
+    'ooredoo': 'Ooredoo',
+    'mobilis': 'Mobilis',
+};
+const OPERATOR_BALANCES = {
+    'djezzy': {{ current_user.balance_djezzy }},
+    'ooredoo': {{ current_user.balance_ooredoo }},
+    'mobilis': {{ current_user.balance_mobilis }},
+};
+
+document.querySelectorAll('#amount_djezzy, #amount_ooredoo, #amount_mobilis').forEach(el => {
     el.addEventListener('change', updateSummary);
     el.addEventListener('keyup', updateSummary);
 });
 
 function updateSummary() {
     const clientSelect = document.getElementById('client_id');
-    const amount = parseFloat(document.getElementById('amount').value) || 0;
-    const balance = {{ current_user.get_total_balance() }};
-    
+    const amounts = {
+        djezzy: parseFloat(document.getElementById('amount_djezzy').value) || 0,
+        ooredoo: parseFloat(document.getElementById('amount_ooredoo').value) || 0,
+        mobilis: parseFloat(document.getElementById('amount_mobilis').value) || 0,
+    };
+
     const selectedOption = clientSelect.options[clientSelect.selectedIndex];
-    const clientInfo = selectedOption.text;
-    
+    const clientInfo = selectedOption && selectedOption.value !== '0' ? selectedOption.text : '—';
+    const lines = Object.entries(amounts)
+        .filter(([, amount]) => amount > 0)
+        .map(([operator, amount]) => {
+            const label = OPERATOR_LABELS[operator] || operator;
+            const balance = OPERATOR_BALANCES[operator] || 0;
+            const newBalance = balance - amount;
+            return `<li>${label} : <strong>${amount.toFixed(2)} DA</strong> (nouveau solde ${newBalance.toFixed(2)} DA)</li>`;
+        });
+
+    const insufficient = Object.entries(amounts).some(([operator, amount]) => amount > (OPERATOR_BALANCES[operator] || 0));
+    const summaryBody = lines.length > 0 ? `<ul class="mb-0">${lines.join('')}</ul>` : '<p class="text-muted mb-0">Aucun montant saisi.</p>';
+
     const summary = `
         <div class="alert alert-warning mb-0">
-            <p><strong>Résumé du transfert:</strong></p>
+            <p><strong>Résumé du transfert :</strong></p>
             <ul class="mb-0">
-                <li>Destinataire: ${clientInfo}</li>
-                <li>Montant: <strong>${amount.toFixed(2)} DA</strong></li>
-                <li>Votre nouveau solde: <strong>${(balance - amount).toFixed(2)} DA</strong></li>
-                ${amount > balance ? '<li class="text-danger"><strong>⚠️ Solde insuffisant!</strong></li>' : ''}
+                <li>Destinataire : ${clientInfo}</li>
             </ul>
+            ${summaryBody}
+            ${insufficient ? '<p class="text-danger mt-2 mb-0"><strong>⚠️ Solde insuffisant sur au moins un opérateur !</strong></p>' : ''}
         </div>
     `;
-    
     document.getElementById('transferSummary').innerHTML = summary;
 }
 </script>

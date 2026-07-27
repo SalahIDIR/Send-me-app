@@ -36,15 +36,33 @@ class RegisterForm(FlaskForm):
             raise ValidationError('Cet email est déjà enregistré.')
 
 class TransferCreditForm(FlaskForm):
-    """Formulaire de transfert de crédit"""
+    """Formulaire de transfert de crédit multi-opérateurs"""
     client_id = SelectField('Client destinataire', coerce=int, validators=[DataRequired()])
-    operator = SelectField('Opérateur', choices=[('djezzy', 'Djezzy'), ('ooredoo', 'Ooredoo'), ('mobilis', 'Mobilis')], validators=[DataRequired()])
-    amount = FloatField('Montant (DA)', validators=[
-        DataRequired(),
-        NumberRange(min=0.01, message='Le montant doit être positif')
-    ])
+    amount_djezzy = FloatField('Montant Djezzy (DA)', validators=[NumberRange(min=0, message='Le montant doit être positif ou nul')], default=0.0)
+    amount_ooredoo = FloatField('Montant Ooredoo (DA)', validators=[NumberRange(min=0, message='Le montant doit être positif ou nul')], default=0.0)
+    amount_mobilis = FloatField('Montant Mobilis (DA)', validators=[NumberRange(min=0, message='Le montant doit être positif ou nul')], default=0.0)
     description = TextAreaField('Description (optionnel)', validators=[Length(min=0, max=255)])
     submit = SubmitField('Envoyer le crédit')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+
+        amounts = [
+            self.amount_djezzy.data or 0,
+            self.amount_ooredoo.data or 0,
+            self.amount_mobilis.data or 0,
+        ]
+
+        if not any(amount > 0 for amount in amounts):
+            self.amount_djezzy.errors.append('Saisissez au moins un montant supérieur à 0.')
+            return False
+
+        return True
+
+    def validate_client_id(self, field):
+        if not field.data:
+            raise ValidationError('Veuillez sélectionner un client.')
 
 class SendCreditByPhoneForm(FlaskForm):
     """Formulaire d'envoi de crédit vers un numéro de téléphone"""
@@ -64,11 +82,6 @@ class AddClientForm(FlaskForm):
     username = StringField('Nom d\'utilisateur', validators=[DataRequired(), Length(min=3, max=80)])
     email = StringField('Email', validators=[DataRequired(), Email()])
     phone = StringField('Numéro de téléphone', validators=[Length(min=0, max=20)])
-    operator = SelectField('Opérateur', choices=[('djezzy', 'Djezzy'), ('ooredoo', 'Ooredoo'), ('mobilis', 'Mobilis')], validators=[DataRequired()])
-    amount = FloatField('Solde initial (DA)', validators=[
-        DataRequired(),
-        NumberRange(min=0, message='Le solde doit être positif ou zéro')
-    ])
     submit = SubmitField('Ajouter le client')
     
     def validate_username(self, username):
@@ -119,7 +132,6 @@ class AddOperatorForm(FlaskForm):
 
 class SystemSettingForm(FlaskForm):
     """Formulaire pour les paramètres système"""
-    commission_rate = FloatField('Taux de commission (%)', validators=[NumberRange(min=0, max=100)])
     max_transaction = FloatField('Montant max transaction', validators=[NumberRange(min=0)])
     min_transaction = FloatField('Montant min transaction', validators=[NumberRange(min=0)])
     submit = SubmitField('Sauvegarder les paramètres')

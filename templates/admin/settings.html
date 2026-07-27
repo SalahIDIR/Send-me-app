@@ -17,24 +17,6 @@
                 <form method="POST" novalidate>
                     {{ form.hidden_tag() }}
                     
-                    <h5 class="mb-4"><i class="bi bi-percent"></i> Commissions</h5>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Taux de commission (%)</label>
-                        <p class="text-muted small mb-2">Commission prélevée sur chaque transaction</p>
-                        {% if form.commission_rate.errors %}
-                            {{ form.commission_rate(class="form-control is-invalid") }}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.commission_rate.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.commission_rate(class="form-control", type="number", step="0.01", min="0", max="100") }}
-                        {% endif %}
-                    </div>
-                    
-                    <hr class="my-4">
                     <h5 class="mb-4"><i class="bi bi-cash"></i> Limites de Transactions</h5>
                     
                     <div class="mb-3">
@@ -82,11 +64,10 @@
                 <i class="bi bi-info-circle"></i> Information
             </div>
             <div class="card-body">
-                <h6>À propos des paramètres:</h6>
+                <h6>À propos des paramètres :</h6>
                 <ul>
-                    <li><strong>Commission:</strong> Pourcentage prélevé sur les transferts</li>
-                    <li><strong>Min Transaction:</strong> Montant minimum autorisé</li>
-                    <li><strong>Max Transaction:</strong> Montant maximum autorisé</li>
+                    <li><strong>Min Transaction :</strong> Montant minimum autorisé par envoi</li>
+                    <li><strong>Max Transaction :</strong> Montant maximum autorisé par envoi</li>
                 </ul>
             </div>
         </div>
