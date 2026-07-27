@@ -24,8 +24,10 @@ class User(UserMixin, db.Model):
     # Pour les clients : référence au Point de Vente
     pdv_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     
-    # Solde de crédit
-    balance = db.Column(db.Float, default=0.0, nullable=False)
+    # Solde de crédit par opérateur
+    balance_djezzy = db.Column(db.Float, default=0.0, nullable=False)
+    balance_ooredoo = db.Column(db.Float, default=0.0, nullable=False)
+    balance_mobilis = db.Column(db.Float, default=0.0, nullable=False)
     
     # Statut du compte
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -50,18 +52,40 @@ class User(UserMixin, db.Model):
         """Vérifier le mot de passe"""
         return check_password_hash(self.password_hash, password)
     
-    def add_balance(self, amount):
-        """Ajouter au solde"""
-        self.balance += amount
+    def get_total_balance(self):
+        """Retourner le solde total de tous les opérateurs"""
+        return self.balance_djezzy + self.balance_ooredoo + self.balance_mobilis
+    
+    def get_balance_by_operator(self, operator):
+        """Obtenir le solde pour un opérateur spécifique"""
+        if operator == 'djezzy':
+            return self.balance_djezzy
+        elif operator == 'ooredoo':
+            return self.balance_ooredoo
+        elif operator == 'mobilis':
+            return self.balance_mobilis
+        return 0.0
+    
+    def add_balance(self, amount, operator='djezzy'):
+        """Ajouter au solde d'un opérateur"""
+        if operator == 'djezzy':
+            self.balance_djezzy += amount
+        elif operator == 'ooredoo':
+            self.balance_ooredoo += amount
+        elif operator == 'mobilis':
+            self.balance_mobilis += amount
         self.updated_at = datetime.now(timezone.utc)
     
-    def subtract_balance(self, amount):
+    def subtract_balance(self, amount, operator='djezzy'):
         """Soustraire du solde de façon atomique (protège contre les écritures simultanées)"""
+        column = getattr(User, f'balance_{operator}', None)
+        if column is None:
+            return False
         updated = db.session.query(User).filter(
             User.id == self.id,
-            User.balance >= amount
+            column >= amount
         ).update(
-            {"balance": User.balance - amount, "updated_at": datetime.now(timezone.utc)},
+            {column: column - amount, "updated_at": datetime.now(timezone.utc)},
             synchronize_session="fetch"
         )
         return updated > 0
@@ -77,6 +101,9 @@ class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Opérateur utilisé
+    operator = db.Column(db.String(20), default='djezzy', nullable=False)
     
     # Montant en DA (Dinar Algérien)
     amount = db.Column(db.Float, nullable=False)

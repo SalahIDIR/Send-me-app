@@ -38,6 +38,7 @@ class RegisterForm(FlaskForm):
 class TransferCreditForm(FlaskForm):
     """Formulaire de transfert de crédit"""
     client_id = SelectField('Client destinataire', coerce=int, validators=[DataRequired()])
+    operator = SelectField('Opérateur', choices=[('djezzy', 'Djezzy'), ('ooredoo', 'Ooredoo'), ('mobilis', 'Mobilis')], validators=[DataRequired()])
     amount = FloatField('Montant (DA)', validators=[
         DataRequired(),
         NumberRange(min=0.01, message='Le montant doit être positif')
@@ -63,7 +64,8 @@ class AddClientForm(FlaskForm):
     username = StringField('Nom d\'utilisateur', validators=[DataRequired(), Length(min=3, max=80)])
     email = StringField('Email', validators=[DataRequired(), Email()])
     phone = StringField('Numéro de téléphone', validators=[Length(min=0, max=20)])
-    initial_balance = FloatField('Solde initial (DA)', validators=[
+    operator = SelectField('Opérateur', choices=[('djezzy', 'Djezzy'), ('ooredoo', 'Ooredoo'), ('mobilis', 'Mobilis')], validators=[DataRequired()])
+    amount = FloatField('Solde initial (DA)', validators=[
         DataRequired(),
         NumberRange(min=0, message='Le solde doit être positif ou zéro')
     ])
@@ -101,6 +103,7 @@ class ChangePasswordForm(FlaskForm):
 class AdjustUserBalanceForm(FlaskForm):
     """Formulaire pour ajuster le solde d'un utilisateur"""
     user_id = SelectField('Utilisateur', coerce=int, validators=[DataRequired()])
+    operator = SelectField('Opérateur', choices=[('djezzy', 'Djezzy'), ('ooredoo', 'Ooredoo'), ('mobilis', 'Mobilis')], validators=[DataRequired()])
     amount = FloatField('Montant', validators=[DataRequired(), NumberRange(min=-999999, max=999999)])
     reason = TextAreaField('Raison de l\'ajustement', validators=[DataRequired(), Length(min=10, max=500)])
     submit = SubmitField('Confirmer l\'ajustement')

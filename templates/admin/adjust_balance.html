@@ -6,7 +6,15 @@
 <div class="row mb-4">
     <div class="col-md-12">
         <h1><i class="bi bi-wallet2"></i> Ajuster le solde de {{ user.username }}</h1>
-        <p class="text-muted">Solde actuel: <strong>{{ "%.2f"|format(user.balance) }} DA</strong></p>
+        <p class="text-muted">
+            Solde total: <strong>{{ "%.2f"|format(user.get_total_balance()) }} DA</strong>
+            <br>
+            <small>
+                Djezzy: {{ "%.2f"|format(user.balance_djezzy) }} DA |
+                Ooredoo: {{ "%.2f"|format(user.balance_ooredoo) }} DA |
+                Mobilis: {{ "%.2f"|format(user.balance_mobilis) }} DA
+            </small>
+        </p>
     </div>
 </div>
 
@@ -16,6 +24,20 @@
             <div class="card-body">
                 <form method="POST" novalidate>
                     {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="operator" class="form-label">Opérateur</label>
+                        {% if form.operator.errors %}
+                            {{ form.operator(class="form-select is-invalid") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.operator.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.operator(class="form-select") }}
+                        {% endif %}
+                    </div>
                     
                     <div class="mb-3">
                         <label for="amount" class="form-label">Montant (DA)</label>
@@ -47,7 +69,7 @@
                     </div>
                     
                     <div id="preview" class="alert alert-info mb-3" style="display:none;">
-                        Nouveau solde: <strong><span id="preview-balance">{{ "%.2f"|format(user.balance) }}</span> DA</strong>
+                        Nouveau solde: <strong><span id="preview-balance">{{ "%.2f"|format(user.get_total_balance()) }}</span> DA</strong> (opérateur: <span id="preview-operator">djezzy</span>)
                     </div>
                     
                     <div class="d-flex gap-2">
@@ -61,16 +83,25 @@
 </div>
 
 <script>
-document.getElementById('amount').addEventListener('keyup', function() {
-    const amount = parseFloat(this.value) || 0;
-    const current = {{ user.balance }};
+const operatorBalances = {
+    'djezzy': {{ user.balance_djezzy }},
+    'ooredoo': {{ user.balance_ooredoo }},
+    'mobilis': {{ user.balance_mobilis }}
+};
+
+function updatePreview() {
+    const operator = document.getElementById('operator').value;
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const current = operatorBalances[operator] || 0;
     const newBalance = current + amount;
     
     const preview = document.getElementById('preview');
     const previewBalance = document.getElementById('preview-balance');
+    const previewOperator = document.getElementById('preview-operator');
     
     if (amount !== 0) {
         previewBalance.textContent = newBalance.toFixed(2);
+        previewOperator.textContent = operator;
         preview.style.display = 'block';
         
         if (newBalance < 0) {
@@ -81,6 +112,9 @@ document.getElementById('amount').addEventListener('keyup', function() {
     } else {
         preview.style.display = 'none';
     }
-});
+}
+
+document.getElementById('amount').addEventListener('keyup', updatePreview);
+document.getElementById('operator').addEventListener('change', updatePreview);
 </script>
 {% endblock %}

@@ -33,6 +33,20 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="operator" class="form-label">Opérateur</label>
+                        {% if form.operator.errors %}
+                            {{ form.operator(class="form-select is-invalid") }}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.operator.errors %}
+                                    <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.operator(class="form-select") }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="amount" class="form-label">Montant (DA)</label>
                         {% if form.amount.errors %}
                             {{ form.amount(class="form-control is-invalid", step="0.01", min="0") }}
@@ -62,7 +76,7 @@
                     
                     <div class="alert alert-info" role="alert">
                         <i class="bi bi-info-circle"></i> 
-                        <strong>Solde actuel:</strong> {{ "%.2f"|format(current_user.balance) }} DA
+                        <strong>Solde actuel:</strong> {{ "%.2f"|format(current_user.get_total_balance()) }} DA
                     </div>
                     
                     <div class="d-flex gap-2">
@@ -103,7 +117,7 @@ document.querySelectorAll('#client_id, #amount').forEach(el => {
 function updateSummary() {
     const clientSelect = document.getElementById('client_id');
     const amount = parseFloat(document.getElementById('amount').value) || 0;
-    const balance = {{ current_user.balance }};
+    const balance = {{ current_user.get_total_balance() }};
     
     const selectedOption = clientSelect.options[clientSelect.selectedIndex];
     const clientInfo = selectedOption.text;

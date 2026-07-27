@@ -42,8 +42,8 @@ USSD_TEMPLATES = {
 
 OPERATOR_PREFIXES = {
     '05': 'ooredoo',
-    '06': 'djezzy',
-    '07': 'mobilis',
+    '06': 'mobilis',
+    '07': 'djezzy',
 }
 
 

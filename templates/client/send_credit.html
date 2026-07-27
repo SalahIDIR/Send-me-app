@@ -13,10 +13,30 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
 
-        <div class="card mb-3">
-            <div class="card-body">
-                <span class="text-muted">Solde disponible</span>
-                <h4 class="mb-0" style="color: var(--primary-color);">{{ "%.2f"|format(current_user.balance) }} DA</h4>
+        <div class="row g-2 mb-3">
+            <div class="col-4">
+                <div class="card h-100 text-center balance-card" style="transition: all 0.2s;">
+                    <div class="card-body py-2">
+                        <div class="fw-bold" style="color:#e30613;">Djezzy</div>
+                        <div class="fs-6">{{ "%.2f"|format(current_user.balance_djezzy) }} DA</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card h-100 text-center balance-card" style="transition: all 0.2s;">
+                    <div class="card-body py-2">
+                        <div class="fw-bold" style="color:#8b1a8b;">Nedjma</div>
+                        <div class="fs-6">{{ "%.2f"|format(current_user.balance_ooredoo) }} DA</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card h-100 text-center balance-card" style="transition: all 0.2s;">
+                    <div class="card-body py-2">
+                        <div class="fw-bold" style="color:#f7941d;">Mobilis</div>
+                        <div class="fs-6">{{ "%.2f"|format(current_user.balance_mobilis) }} DA</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -32,10 +52,13 @@
                     <div class="mb-3">
                         {{ form.phone_number.label(class="form-label") }}
                         {{ form.phone_number(class="form-control" + (" is-invalid" if form.phone_number.errors else ""),
-                                             placeholder="0661234567", maxlength=10) }}
+                                             placeholder="0661234567", maxlength=10, id="phoneInput") }}
                         {% for error in form.phone_number.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
+                        <div id="operatorBadge" class="mt-2" style="display:none;">
+                            <span id="operatorLabel" class="badge fs-6 px-3 py-2"></span>
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -57,6 +80,43 @@
                 </form>
 
 <script>
+const OPERATORS = {
+    '07': { name: 'Djezzy',  color: '#e30613', card: 0 },
+    '05': { name: 'Nedjma',  color: '#8b1a8b', card: 1 },
+    '06': { name: 'Mobilis', color: '#f7941d', card: 2 },
+};
+
+const balanceCards = document.querySelectorAll('.balance-card');
+
+document.getElementById('phoneInput').addEventListener('input', function() {
+    const prefix = this.value.slice(0, 2);
+    const badge  = document.getElementById('operatorBadge');
+    const label  = document.getElementById('operatorLabel');
+    const op     = OPERATORS[prefix];
+
+    // Remettre toutes les cartes à la normale
+    balanceCards.forEach(c => {
+        c.style.boxShadow = '';
+        c.style.transform = '';
+    });
+
+    if (op && this.value.length >= 2) {
+        label.textContent            = op.name;
+        label.style.backgroundColor  = op.color;
+        label.style.color            = '#fff';
+        badge.style.display          = 'block';
+
+        // Mettre en évidence la carte de l'opérateur détecté
+        const activeCard = balanceCards[op.card];
+        if (activeCard) {
+            activeCard.style.boxShadow = `0 0 0 3px ${op.color}`;
+            activeCard.style.transform = 'scale(1.03)';
+        }
+    } else {
+        badge.style.display = 'none';
+    }
+});
+
 document.getElementById('sendForm').addEventListener('submit', function() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;

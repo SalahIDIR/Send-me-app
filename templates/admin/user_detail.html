@@ -47,7 +47,13 @@
                 <div class="row mb-3">
                     <div class="col-sm-4"><strong>Solde:</strong></div>
                     <div class="col-sm-8">
-                        <strong style="color: var(--primary-color); font-size: 1.2rem;">{{ "%.2f"|format(user.balance) }} DA</strong>
+                        <strong style="color: var(--primary-color); font-size: 1.2rem;">{{ "%.2f"|format(user.get_total_balance()) }} DA</strong>
+                        <br>
+                        <small class="text-muted">
+                            Djezzy: {{ "%.2f"|format(user.balance_djezzy) }} DA |
+                            Ooredoo: {{ "%.2f"|format(user.balance_ooredoo) }} DA |
+                            Mobilis: {{ "%.2f"|format(user.balance_mobilis) }} DA
+                        </small>
                     </div>
                 </div>
                 <hr>
@@ -148,7 +154,7 @@
                             <tr>
                                 <td><strong>{{ client.username }}</strong></td>
                                 <td>{{ client.email }}</td>
-                                <td>{{ "%.2f"|format(client.balance) }} DA</td>
+                                <td>{{ "%.2f"|format(client.get_total_balance()) }} DA</td>
                                 <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
                             </tr>
                             {% endfor %}

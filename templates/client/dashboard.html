@@ -11,22 +11,44 @@
 </div>
 
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="stats-card">
-            <h5><i class="bi bi-wallet2"></i> Votre Solde</h5>
-            <div class="amount">{{ "%.2f"|format(current_user.balance) }} <span style="font-size: 1rem;">DA</span></div>
+            <h5><i class="bi bi-wallet2"></i> Soldes par opérateur</h5>
+            <div class="small mt-2">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Djezzy</span>
+                    <strong>{{ "%.2f"|format(current_user.balance_djezzy) }} DA</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Ooredoo</span>
+                    <strong>{{ "%.2f"|format(current_user.balance_ooredoo) }} DA</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Mobilis</span>
+                    <strong>{{ "%.2f"|format(current_user.balance_mobilis) }} DA</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                    <span>Total</span>
+                    <strong>{{ "%.2f"|format(current_user.get_total_balance()) }} DA</strong>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="stats-card">
-            <h5><i class="bi bi-arrow-up"></i> Total Envoyé</h5>
-            <div class="amount">{{ "%.2f"|format(sent_amount) }} <span style="font-size: 1rem;">DA</span></div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stats-card">
-            <h5><i class="bi bi-arrow-down"></i> Total Reçu</h5>
-            <div class="amount">{{ "%.2f"|format(received_amount) }} <span style="font-size: 1rem;">DA</span></div>
+    <div class="col-md-6">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="stats-card">
+                    <h5><i class="bi bi-arrow-up"></i> Total Envoyé</h5>
+                    <div class="amount">{{ "%.2f"|format(sent_amount) }} <span style="font-size: 1rem;">DA</span></div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="stats-card">
+                    <h5><i class="bi bi-arrow-down"></i> Total Reçu</h5>
+                    <div class="amount">{{ "%.2f"|format(received_amount) }} <span style="font-size: 1rem;">DA</span></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

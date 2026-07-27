@@ -183,10 +183,10 @@ def dashboard():
     if current_user.role == 'pdv':
         # Pour le Point de Vente
         total_clients = User.query.filter_by(pdv_id=current_user.id, role='client').count()
-        total_balance_distributed = db.session.query(db.func.sum(User.balance)).filter(
-            User.pdv_id == current_user.id,
-            User.role == 'client'
-        ).scalar() or 0
+        
+        # Calcul du solde distribué aux clients (somme des 3 balances par client)
+        clients = User.query.filter_by(pdv_id=current_user.id, role='client').all()
+        total_balance_distributed = sum(client.get_total_balance() for client in clients)
         
         # Transactions récentes
         recent_transactions = Transaction.query.filter(
@@ -245,20 +245,23 @@ def add_client():
             email=form.email.data,
             phone=form.phone.data,
             role='client',
-            pdv_id=current_user.id,
-            balance=form.initial_balance.data
+            pdv_id=current_user.id
         )
         user.set_password('temp123456')  # Mot de passe temporaire
         
+        # Ajouter le solde initial au client sur l'opérateur sélectionné
+        user.add_balance(form.amount.data, form.operator.data)
+        
         # Soustraire du solde du PdV
-        if current_user.subtract_balance(form.initial_balance.data):
+        if current_user.subtract_balance(form.amount.data, form.operator.data):
             db.session.add(user)
             
             # Créer une transaction
             transaction = Transaction(
                 sender_id=current_user.id,
                 receiver_id=user.id,
-                amount=form.initial_balance.data,
+                operator=form.operator.data,
+                amount=form.amount.data,
                 description='Création du compte client',
                 status='completed'
             )
@@ -268,7 +271,9 @@ def add_client():
             flash(f'Client {user.username} créé avec succès! Mot de passe temporaire: temp123456', 'success')
             return redirect(url_for('manage_clients'))
         else:
-            flash('Solde insuffisant pour créer ce client.', 'danger')
+            flash(f'Solde insuffisant sur l\'opérateur {form.operator.data.title()} pour créer ce client.', 'danger')
+            # Annuler l'ajout du solde au user si la soustraction du PdV a échoué
+            user.subtract_balance(form.amount.data, form.operator.data)
     
     return render_template('pdv/add_client.html', form=form)
 
@@ -279,7 +284,7 @@ def transfer_credit():
     """Transférer du crédit à un client"""
     form = TransferCreditForm()
 
-    form.client_id.choices = [(c.id, f"{c.username} (Solde: {c.balance:.2f} DA)")
+    form.client_id.choices = [(c.id, f"{c.username} (Solde total: {c.get_total_balance():.2f} DA)")
                                for c in User.query.filter_by(pdv_id=current_user.id, role='client').all()]
 
     if form.validate_on_submit():
@@ -294,12 +299,13 @@ def transfer_credit():
             flash('Client invalide.', 'danger')
             return redirect(url_for('transfer_credit'))
 
-        if current_user.subtract_balance(form.amount.data):
-            client.add_balance(form.amount.data)
+        if current_user.subtract_balance(form.amount.data, form.operator.data):
+            client.add_balance(form.amount.data, form.operator.data)
 
             transaction = Transaction(
                 sender_id=current_user.id,
                 receiver_id=client.id,
+                operator=form.operator.data,
                 amount=form.amount.data,
                 description=form.description.data or 'Transfert de crédit',
                 status='completed'
@@ -307,10 +313,10 @@ def transfer_credit():
             db.session.add(transaction)
             db.session.commit()
 
-            flash(f'Transfert de {form.amount.data:.2f} DA vers {client.username} réussi!', 'success')
+            flash(f'Transfert de {form.amount.data:.2f} DA vers {client.username} (opérateur: {form.operator.data.title()}) réussi!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Solde insuffisant pour effectuer ce transfert.', 'danger')
+            flash('Solde insuffisant pour effectuer ce transfert sur l\'opérateur sélectionné.', 'danger')
 
     form_token = generate_form_token()
     return render_template('pdv/transfer.html', form=form, form_token=form_token)
@@ -338,17 +344,25 @@ def send_credit():
         phone = form.phone_number.data.strip()
         amount = form.amount.data
 
-        if not current_user.subtract_balance(amount):
-            flash('Solde insuffisant.', 'danger')
+        prefix_map = {'07': 'djezzy', '05': 'ooredoo', '06': 'mobilis'}
+        operator = prefix_map.get(phone[:2])
+        if not operator:
+            flash('Numéro de téléphone non reconnu.', 'danger')
+            form_token = generate_form_token()
+            return render_template('client/send_credit.html', form=form, form_token=form_token)
+
+        if not current_user.subtract_balance(amount, operator):
+            flash(f'Solde {operator.title()} insuffisant.', 'danger')
             form_token = generate_form_token()
             return render_template('client/send_credit.html', form=form, form_token=form_token)
 
         transaction = Transaction(
             sender_id=current_user.id,
             receiver_id=current_user.id,
+            operator=operator,
             recipient_phone=phone,
             amount=amount,
-            description=f'Envoi crédit -> {phone}',
+            description=f'Envoi crédit -> {phone} ({operator.title()})',
             status='pending'
         )
         db.session.add(transaction)
@@ -356,7 +370,7 @@ def send_credit():
 
         _do_send_credit_to_phone(phone, amount)
 
-        flash(f'{amount:.2f} DA envoyés vers le {phone}.', 'success')
+        flash(f'{amount:.2f} DA envoyés vers le {phone} ({operator.title()}).', 'success')
         return redirect(url_for('dashboard'))
 
     form_token = generate_form_token()
@@ -540,22 +554,29 @@ def admin_toggle_user_status(user_id):
 @login_required
 @role_required('admin')
 def admin_adjust_balance(user_id):
-    """Ajuster le solde d'un utilisateur"""
+    """Ajuster le solde d'un utilisateur pour un opérateur spécifique"""
     user = User.query.get_or_404(user_id)
     form = AdjustUserBalanceForm()
     
     if form.validate_on_submit():
-        old_balance = user.balance
-        user.balance += form.amount.data
+        operator = form.operator.data
+        old_balance = user.get_balance_by_operator(operator)
+        new_balance = old_balance + form.amount.data
+        
+        # Ajouter ou soustraire du solde selon l'opérateur
+        if form.amount.data >= 0:
+            user.add_balance(form.amount.data, operator)
+        else:
+            user.subtract_balance(abs(form.amount.data), operator)
         
         # Log la transaction d'ajustement
         db.session.commit()
         
         log_audit('ADMIN_BALANCE_ADJUST',
-                 f'Ajustement de solde: {user.username} de {old_balance} à {user.balance} ({form.reason.data})',
+                 f'Ajustement de solde {operator}: {user.username} de {old_balance} à {new_balance} ({form.reason.data})',
                  status='success')
         
-        flash(f'Solde de {user.username} ajusté de {form.amount.data:.2f} DA', 'success')
+        flash(f'Solde {operator} de {user.username} ajusté de {form.amount.data:.2f} DA', 'success')
         return redirect(url_for('admin_user_detail', user_id=user.id))
     
     return render_template('admin/adjust_balance.html', user=user, form=form)
@@ -596,7 +617,9 @@ def admin_reports():
     
     total_transactions = Transaction.query.count()
     total_volume = db.session.query(db.func.sum(Transaction.amount)).scalar() or 0
-    total_balance = db.session.query(db.func.sum(User.balance)).scalar() or 0
+    total_balance = db.session.query(
+        db.func.sum(User.balance_djezzy + User.balance_ooredoo + User.balance_mobilis)
+    ).scalar() or 0
     
     # Transactions par jour (dernier mois)
     from sqlalchemy import func
@@ -815,7 +838,7 @@ def create_demo():
     # Créer les opérateurs par défaut
     operators = [
         Operator(name='Djezzy', code='djz', description='Opérateur Djezzy'),
-        Operator(name='Nedjma', code='ndj', description='Opérateur Nedjma'),
+        Operator(name='Ooredoo', code='oro', description='Opérateur Ooredoo'),
         Operator(name='Mobilis', code='mob', description='Opérateur Mobilis')
     ]
     for op in operators:
@@ -823,18 +846,26 @@ def create_demo():
     db.session.commit()
     
     # Créer un admin
-    admin = User(username='admin', email='admin@topili.com', phone='0661111111', role='admin', balance=0)
+    admin = User(username='admin', email='admin@topili.com', phone='0661111111', role='admin')
     admin.set_password('admin123456')
     db.session.add(admin)
     db.session.commit()
     
-    # Créer un PdV
-    pdv = User(username='pdv_ali', email='ali@topili.com', phone='0661234567', role='pdv', balance=100000)
+    # Créer un PdV avec 3 balances d'opérateurs
+    pdv = User(
+        username='pdv_ali',
+        email='ali@topili.com',
+        phone='0661234567',
+        role='pdv',
+        balance_djezzy=35000,
+        balance_ooredoo=35000,
+        balance_mobilis=30000
+    )
     pdv.set_password('pdv123456')
     db.session.add(pdv)
     db.session.commit()
     
-    # Créer des clients
+    # Créer des clients avec balances d'opérateurs
     for i in range(5):
         client = User(
             username=f'client_{i+1}',
@@ -842,7 +873,9 @@ def create_demo():
             phone=f'066123456{i}',
             role='client',
             pdv_id=pdv.id,
-            balance=5000
+            balance_djezzy=2000,
+            balance_ooredoo=2000,
+            balance_mobilis=1000
         )
         client.set_password('client123456')
         db.session.add(client)
@@ -851,8 +884,13 @@ def create_demo():
     print('Données de démo créées!')
     print('Admin - Username: admin, Mot de passe: admin123456')
     print('PdV - Username: pdv_ali, Mot de passe: pdv123456')
+    print('  - Solde Djezzy: 35000 DA')
+    print('  - Solde Ooredoo: 35000 DA')
+    print('  - Solde Mobilis: 30000 DA')
+    print('  - Solde Total: 100000 DA')
     print('Clients - Username: client_1 à client_5, Mot de passe: client123456')
-    print('Opérateurs: Djezzy, Nedjma, Mobilis')
+    print('  - Solde par client (total): 5000 DA')
+    print('Opérateurs: Djezzy, Ooredoo, Mobilis')
 
 if __name__ == '__main__':
     with app.app_context():

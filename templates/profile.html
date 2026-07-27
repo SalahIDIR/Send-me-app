@@ -61,7 +61,13 @@
                         <h6 class="mb-0">Solde</h6>
                     </div>
                     <div class="col-sm-9 text-secondary">
-                        <strong style="color: var(--primary-color); font-size: 1.2rem;">{{ "%.2f"|format(current_user.balance) }} DA</strong>
+                        <strong style="color: var(--primary-color); font-size: 1.2rem;">{{ "%.2f"|format(current_user.get_total_balance()) }} DA</strong>
+                        <br>
+                        <small class="text-muted">
+                            Djezzy: {{ "%.2f"|format(current_user.balance_djezzy) }} DA |
+                            Ooredoo: {{ "%.2f"|format(current_user.balance_ooredoo) }} DA |
+                            Mobilis: {{ "%.2f"|format(current_user.balance_mobilis) }} DA
+                        </small>
                     </div>
                 </div>
                 <hr>

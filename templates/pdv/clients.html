@@ -36,7 +36,7 @@
                         <td>{{ client.email }}</td>
                         <td>{{ client.phone or '-' }}</td>
                         <td>
-                            <strong style="color: var(--primary-color);">{{ "%.2f"|format(client.balance) }} DA</strong>
+                            <strong style="color: var(--primary-color);">{{ "%.2f"|format(client.get_total_balance()) }} DA</strong>
                         </td>
                         <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
                         <td>
