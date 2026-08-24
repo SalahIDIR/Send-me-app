@@ -1,136 +1,367 @@
-{% extends "base.html" %}
+{% extends "base_pdv.html" %}
 
 {% block title %}Tableau de bord - Topili{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* ─── Page header ──────────────────── */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 2px;
+    }
+
+    .page-header .subtitle {
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+
+    /* Balance bar (top right) */
+    .balance-bar {
+        text-align: right;
+        min-width: 220px;
+    }
+
+    .balance-bar .amounts {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .balance-bar .amounts .total { color: #1a56ff; }
+    .balance-bar .amounts .sep   { color: #cbd5e1; font-weight: 400; }
+    .balance-bar .amounts .limit { color: #94a3b8; font-weight: 500; font-size: 0.85rem; }
+
+    .balance-bar .progress {
+        height: 5px;
+        border-radius: 3px;
+        background: #e2e8f0;
+        margin-top: 6px;
+    }
+
+    .balance-bar .progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: #1a56ff;
+        transition: width 0.4s;
+    }
+
+    .eye-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    /* ─── Quick actions ────────────────── */
+    .quick-action {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #f8fafc;
+        text-decoration: none;
+        color: #1e293b;
+        transition: all 0.15s;
+        margin-bottom: 10px;
+    }
+
+    .quick-action:last-child { margin-bottom: 0; }
+
+    .quick-action:hover {
+        background: #eff4ff;
+        color: #1a56ff;
+        transform: translateX(2px);
+    }
+
+    .quick-action .qa-icon {
+        width: 38px; height: 38px;
+        background: #e0e7ff;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        color: #1a56ff;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .quick-action .qa-text .qa-title { font-size: 0.88rem; font-weight: 600; }
+    .quick-action .qa-text .qa-sub   { font-size: 0.75rem; color: #94a3b8; }
+
+    .quick-action .qa-arrow { margin-left: auto; color: #cbd5e1; font-size: 0.8rem; }
+
+    /* ─── Operator balances ────────────── */
+    .operator-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f3f8;
+    }
+
+    .operator-row:last-of-type { border-bottom: none; }
+
+    .op-logo {
+        width: 36px; height: 24px;
+        border-radius: 4px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.6rem;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        flex-shrink: 0;
+    }
+
+    .op-logo.djezzy  { background: #e30613; color: #fff; }
+    .op-logo.ooredoo { background: #d50032; color: #fff; letter-spacing: -1px; }
+    .op-logo.mobilis { background: #009639; color: #fff; }
+
+    .op-name { font-size: 0.88rem; font-weight: 600; flex: 1; }
+    .op-amount { font-size: 0.9rem; font-weight: 700; color: #1e293b; }
+
+    /* ─── Stat boxes ───────────────────── */
+    .stat-box {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stat-box .sb-icon {
+        width: 36px; height: 36px;
+        border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .stat-box .sb-label { font-size: 0.72rem; color: #94a3b8; font-weight: 600; }
+    .stat-box .sb-value { font-size: 1rem; font-weight: 700; color: #1e293b; line-height: 1.2; }
+
+    /* ─── Transactions table ───────────── */
+    .section-title {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 14px;
+    }
+
+    .status-icon {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .status-icon.ok      { background: #dcfce7; color: #16a34a; }
+    .status-icon.pending { background: #fef3c7; color: #d97706; }
+    .status-icon.fail    { background: #fee2e2; color: #dc2626; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <h1><i class="bi bi-speedometer2"></i> Tableau de bord</h1>
-        <p class="text-muted">Bienvenue {{ current_user.username }}!</p>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="stats-card">
-            <h5><i class="bi bi-wallet2"></i> Soldes par opérateur</h5>
-            <div class="small mt-2">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Djezzy</span>
-                    <strong>{{ "%.2f"|format(current_user.balance_djezzy) }} DA</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Ooredoo</span>
-                    <strong>{{ "%.2f"|format(current_user.balance_ooredoo) }} DA</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Mobilis</span>
-                    <strong>{{ "%.2f"|format(current_user.balance_mobilis) }} DA</strong>
-                </div>
-                <hr class="my-2">
-                <div class="d-flex justify-content-between">
-                    <span>Total</span>
-                    <strong>{{ "%.2f"|format(current_user.get_total_balance()) }} DA</strong>
-                </div>
-            </div>
-        </div>
+{% set total_balance = current_user.get_total_balance() %}
+{% set grand_total = total_balance + total_balance_distributed %}
+{% set pct = ((total_balance_distributed / grand_total * 100) if grand_total > 0 else 0)|round(1) %}
+
+<!-- ─── Page header ────────────────────────────────── -->
+<div class="page-header">
+    <div>
+        <h1>Tableau de bord</h1>
+        <p class="subtitle">Bienvenue, {{ current_user.username }}</p>
     </div>
-    <div class="col-md-2">
-        <div class="stats-card">
-            <h5><i class="bi bi-people"></i> Clients</h5>
-            <div class="amount">{{ total_clients }}</div>
+
+    <div class="balance-bar">
+        <div class="amounts">
+            <span class="total" id="balanceTotal">{{ "%.2f"|format(total_balance) }} DA</span>
+            <span class="sep">/</span>
+            <span class="limit" id="balanceGrand">{{ "%.2f"|format(grand_total) }}</span>
+            <button class="eye-btn" id="eyeBtn" onclick="toggleBalance()">
+                <i class="bi bi-eye" id="eyeIcon"></i>
+            </button>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stats-card">
-            <h5><i class="bi bi-credit-card"></i> Crédit Distribué</h5>
-            <div class="amount">{{ "%.2f"|format(total_balance_distributed) }} <span style="font-size: 1rem;">DA</span></div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stats-card">
-            <h5><i class="bi bi-bar-chart"></i> Taux Distribution</h5>
-            <div class="amount">
-                {% if (current_user.get_total_balance() + total_balance_distributed) > 0 %}
-                    {{ "%.1f"|format((total_balance_distributed / (current_user.get_total_balance() + total_balance_distributed)) * 100) }}%
-                {% else %}
-                    0%
-                {% endif %}
-            </div>
+        <div class="progress">
+            <div class="progress-fill" style="width: {{ pct }}%;"></div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-arrow-left-right"></i> Transactions Récentes
+<!-- ─── Middle row ────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+    <!-- Actions rapides -->
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-body p-3">
+                <div class="section-title">Actions rapides</div>
+
+                <a href="{{ url_for('transfer_credit') }}" class="quick-action">
+                    <div class="qa-icon"><i class="bi bi-send"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Transférer du crédit</div>
+                        <div class="qa-sub">Envoyer du crédit à un client</div>
+                    </div>
+                    <i class="bi bi-chevron-right qa-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('manage_clients') }}" class="quick-action">
+                    <div class="qa-icon"><i class="bi bi-people"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Voir tous les clients</div>
+                        <div class="qa-sub">Consulter la liste des clients</div>
+                    </div>
+                    <i class="bi bi-chevron-right qa-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('transactions') }}" class="quick-action">
+                    <div class="qa-icon"><i class="bi bi-receipt"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Rapport des crédits</div>
+                        <div class="qa-sub">Voir les rapports et statistiques</div>
+                    </div>
+                    <i class="bi bi-chevron-right qa-arrow"></i>
+                </a>
             </div>
-            <div class="card-body">
-                {% if recent_transactions %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>De</th>
-                                <th>À</th>
-                                <th>Montant</th>
-                                <th>Description</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in recent_transactions %}
-                            <tr>
-                                <td>{{ transaction.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                                <td>
-                                    {% if transaction.sender.id == current_user.id %}
-                                    <strong>{{ transaction.sender.username }}</strong> (Vous)
-                                    {% else %}
-                                    {{ transaction.sender.username }}
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if transaction.receiver.id == current_user.id %}
-                                    <strong>{{ transaction.receiver.username }}</strong> (Vous)
-                                    {% else %}
-                                    {{ transaction.receiver.username }}
-                                    {% endif %}
-                                </td>
-                                <td><strong>{{ "%.2f"|format(transaction.amount) }} DA</strong></td>
-                                <td>{{ transaction.description }}</td>
-                                <td>
-                                    {% if transaction.status == 'completed' %}
-                                    <span class="badge badge-success">Complétée</span>
-                                    {% elif transaction.status == 'pending' %}
-                                    <span class="badge badge-pending">En attente</span>
-                                    {% else %}
-                                    <span class="badge badge-failed">Échouée</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        </div>
+    </div>
+
+    <!-- Soldes + stats -->
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-body p-3">
+                <div class="section-title">Soldes par opérateur</div>
+
+                <div class="operator-row">
+                    <div class="op-logo djezzy">DZZ</div>
+                    <span class="op-name">Djezzy</span>
+                    <span class="op-amount">{{ "%.2f"|format(current_user.balance_djezzy) }} DA</span>
                 </div>
-                {% else %}
-                <p class="text-muted">Aucune transaction pour le moment.</p>
-                {% endif %}
+                <div class="operator-row">
+                    <div class="op-logo ooredoo">OOR</div>
+                    <span class="op-name">Ooredoo</span>
+                    <span class="op-amount">{{ "%.2f"|format(current_user.balance_ooredoo) }} DA</span>
+                </div>
+                <div class="operator-row">
+                    <div class="op-logo mobilis">MOB</div>
+                    <span class="op-name">Mobilis</span>
+                    <span class="op-amount">{{ "%.2f"|format(current_user.balance_mobilis) }} DA</span>
+                </div>
+
+                <div class="row g-2 mt-3">
+                    <div class="col-4">
+                        <div class="stat-box">
+                            <div class="sb-icon" style="background:#e0e7ff; color:#1a56ff;">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div>
+                                <div class="sb-label">Clients</div>
+                                <div class="sb-value">{{ total_clients }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-box">
+                            <div class="sb-icon" style="background:#dcfce7; color:#16a34a;">
+                                <i class="bi bi-database"></i>
+                            </div>
+                            <div>
+                                <div class="sb-label">Crédits distribués</div>
+                                <div class="sb-value" style="font-size:0.82rem;">{{ "%.2f"|format(total_balance_distributed) }} DA</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-box">
+                            <div class="sb-icon" style="background:#fef3c7; color:#d97706;">
+                                <i class="bi bi-pie-chart"></i>
+                            </div>
+                            <div>
+                                <div class="sb-label">Taux distribution</div>
+                                <div class="sb-value">{{ pct }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <a href="{{ url_for('manage_clients') }}" class="btn btn-secondary me-2">
-            <i class="bi bi-people"></i> Voir tous les clients
-        </a>
-        <a href="{{ url_for('transfer_credit') }}" class="btn btn-primary">
-            <i class="bi bi-arrow-right"></i> Transférer du crédit
-        </a>
+<!-- ─── Transactions récentes ─────────────────────── -->
+<div class="card">
+    <div class="card-body p-3">
+        <div class="section-title">Transactions récentes</div>
+        {% if recent_transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" style="font-size:0.85rem;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>De</th>
+                        <th>À</th>
+                        <th>Montant</th>
+                        <th>Description</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in recent_transactions %}
+                    <tr>
+                        <td class="text-muted">{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ tx.sender.username }}</td>
+                        <td>{{ tx.receiver.username }}</td>
+                        <td><strong>{{ "%.2f"|format(tx.amount) }} DA</strong></td>
+                        <td class="text-muted">{{ tx.description or '—' }}</td>
+                        <td>
+                            {% if tx.status == 'completed' %}
+                            <span class="status-icon ok"><i class="bi bi-check"></i></span>
+                            {% elif tx.status == 'pending' %}
+                            <span class="status-icon pending"><i class="bi bi-hourglass-split"></i></span>
+                            {% else %}
+                            <span class="status-icon fail"><i class="bi bi-x"></i></span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0" style="font-size:0.85rem;">Aucune transaction pour le moment.</p>
+        {% endif %}
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let balanceVisible = true;
+const realTotal  = "{{ '%.2f'|format(current_user.get_total_balance()) }} DA";
+const realGrand  = "{{ '%.2f'|format(current_user.get_total_balance() + total_balance_distributed) }}";
+
+function toggleBalance() {
+    balanceVisible = !balanceVisible;
+    document.getElementById('balanceTotal').textContent = balanceVisible ? realTotal  : '••••••';
+    document.getElementById('balanceGrand').textContent = balanceVisible ? realGrand  : '••••••';
+    document.getElementById('eyeIcon').className = balanceVisible ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+</script>
 {% endblock %}

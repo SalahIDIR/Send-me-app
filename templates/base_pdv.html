@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Topili{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6fb;
+            color: #1e293b;
+        }
+
+        body.auth-page {
+            background: linear-gradient(135deg, #1a56ff 0%, #3b82f6 100%);
+        }
+
+        /* ─── Sidebar ─────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: 232px;
+            background: #fff;
+            border-right: 1px solid #e8edf3;
+            display: flex;
+            flex-direction: column;
+            z-index: 200;
+        }
+
+        .sidebar-logo {
+            padding: 22px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #f0f3f8;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo .logo-circle {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo .logo-circle.pdv    { background: linear-gradient(135deg, #1a56ff, #3b82f6); }
+        .sidebar-logo .logo-circle.client { background: linear-gradient(135deg, #16a34a, #22c55e); }
+        .sidebar-logo .logo-circle.admin  { background: linear-gradient(135deg, #dc2626, #f87171); }
+
+        .sidebar-logo .logo-circle svg { width: 18px; height: 18px; }
+        .sidebar-logo .brand { font-size: 1rem; font-weight: 700; color: #1e293b; letter-spacing: 0.04em; }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 10px 20px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .sidebar-nav a i { font-size: 1rem; }
+
+        .sidebar-nav a:hover  { color: #1a56ff; background: #f0f4ff; }
+        .sidebar-nav a.active { color: #1a56ff; background: #eff4ff; font-weight: 600; }
+        .sidebar-nav a.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 4px; bottom: 4px;
+            width: 3px; background: #1a56ff;
+            border-radius: 0 3px 3px 0;
+        }
+
+        .sidebar-nav.admin a:hover  { color: #dc2626; background: #fff1f1; }
+        .sidebar-nav.admin a.active { color: #dc2626; background: #fff1f1; }
+        .sidebar-nav.admin a.active::before { background: #dc2626; }
+
+        .sidebar-nav.client a:hover  { color: #16a34a; background: #f0fdf4; }
+        .sidebar-nav.client a.active { color: #16a34a; background: #f0fdf4; }
+        .sidebar-nav.client a.active::before { background: #16a34a; }
+
+        .sidebar-nav .nav-sep { height: 1px; background: #f0f3f8; margin: 8px 16px; }
+
+        .sidebar-nav a.nav-danger { color: #9ca3af; }
+        .sidebar-nav a.nav-danger:hover { color: #ef4444; background: #fff1f1; }
+
+        .sidebar-user {
+            padding: 14px 16px;
+            border-top: 1px solid #f0f3f8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-user .avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .sidebar-user .avatar.pdv    { background: #e0e7ff; color: #1a56ff; }
+        .sidebar-user .avatar.client { background: #dcfce7; color: #16a34a; }
+        .sidebar-user .avatar.admin  { background: #fee2e2; color: #dc2626; }
+
+        .sidebar-user .info { flex: 1; min-width: 0; }
+        .sidebar-user .info .label { font-size: 0.7rem; color: #9ca3af; }
+        .sidebar-user .info .name {
+            font-size: 0.82rem; font-weight: 600; color: #1e293b;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* ─── Main wrapper ────────────────────────── */
+        .main-wrapper {
+            margin-left: 232px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-wrapper.no-sidebar {
+            margin-left: 0;
+        }
+
+        .flash-zone { padding: 16px 28px 0; }
+        .page-body  { flex: 1; padding: 28px 28px 40px; }
+
+        .auth-page .flash-zone { padding: 0; }
+        .auth-page .page-body  { padding: 0; }
+
+        /* ─── Login card (auth pages) ─────────────── */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-card h2 { color: #1a56ff; margin-bottom: 28px; font-weight: 700; text-align: center; }
+
+        /* ─── Bootstrap overrides ─────────────────── */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            background: #f8fafc;
+            color: #1e293b;
+            border-bottom: 1px solid #e8edf3;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 12px 12px 0 0 !important;
+        }
+
+        .btn-primary  { background: #1a56ff; border-color: #1a56ff; font-weight: 600; padding: 10px 20px; }
+        .btn-primary:hover { background: #1447e0; border-color: #1447e0; }
+
+        .btn-secondary { background: #64748b; border-color: #64748b; font-weight: 600; padding: 10px 20px; }
+        .btn-secondary:hover { background: #475569; border-color: #475569; }
+
+        .btn-danger { font-weight: 600; padding: 10px 20px; }
+
+        .form-control, .form-select {
+            border-radius: 7px;
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #1a56ff;
+            box-shadow: 0 0 0 0.2rem rgba(26,86,255,0.18);
+        }
+
+        .table { background: white; }
+        .table thead th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid #e8edf3;
+        }
+        .table tbody tr:hover { background: #f8fafc; }
+
+        .badge { padding: 5px 12px; border-radius: 20px; font-weight: 600; }
+        .badge-success { background: #22c55e; color: #fff; }
+        .badge-pending { background: #f59e0b; color: #fff; }
+        .badge-failed  { background: #ef4444; color: #fff; }
+
+        .alert { border-radius: 8px; border: none; }
+        .alert-success { background: #dcfce7; color: #15803d; }
+        .alert-danger  { background: #fee2e2; color: #b91c1c; }
+        .alert-warning { background: #fef3c7; color: #92400e; }
+        .alert-info    { background: #dbeafe; color: #1e40af; }
+
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body class="{{ 'auth-page' if not current_user.is_authenticated else '' }}">
+
+{% if current_user.is_authenticated %}
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-circle {{ current_user.role }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 12h8M12 8v8"/>
+            </svg>
+        </div>
+        <span class="brand">TOPILI</span>
+    </div>
+
+    <nav class="sidebar-nav {{ current_user.role }}">
+        {% if current_user.role == 'pdv' %}
+        <a href="{{ url_for('dashboard') }}"       class="{{ 'active' if request.endpoint == 'dashboard' }}">
+            <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
+        </a>
+        <a href="{{ url_for('manage_clients') }}"  class="{{ 'active' if request.endpoint == 'manage_clients' }}">
+            <i class="bi bi-people"></i> Mes clients
+        </a>
+        <a href="{{ url_for('add_client') }}"      class="{{ 'active' if request.endpoint == 'add_client' }}">
+            <i class="bi bi-person-plus"></i> Ajouter clients
+        </a>
+        <a href="{{ url_for('transfer_credit') }}" class="{{ 'active' if request.endpoint == 'transfer_credit' }}">
+            <i class="bi bi-arrow-down-up"></i> Transférer crédits
+        </a>
+        <a href="{{ url_for('transactions') }}"    class="{{ 'active' if request.endpoint == 'transactions' }}">
+            <i class="bi bi-clock-history"></i> Historique
+        </a>
+        <div class="nav-sep"></div>
+        <a href="{{ url_for('profile') }}"         class="{{ 'active' if request.endpoint in ['profile','edit_profile','change_password'] }}">
+            <i class="bi bi-gear"></i> Paramètre
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-danger">
+            <i class="bi bi-box-arrow-right"></i> Déconnexion
+        </a>
+
+        {% elif current_user.role == 'client' %}
+        <a href="{{ url_for('dashboard') }}"    class="{{ 'active' if request.endpoint == 'dashboard' }}">
+            <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
+        </a>
+        <a href="{{ url_for('send_credit') }}"  class="{{ 'active' if request.endpoint == 'send_credit' }}">
+            <i class="bi bi-send"></i> Envoyer crédit
+        </a>
+        <a href="{{ url_for('transactions') }}" class="{{ 'active' if request.endpoint == 'transactions' }}">
+            <i class="bi bi-clock-history"></i> Historique
+        </a>
+        <div class="nav-sep"></div>
+        <a href="{{ url_for('profile') }}"      class="{{ 'active' if request.endpoint in ['profile','edit_profile','change_password'] }}">
+            <i class="bi bi-gear"></i> Paramètre
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-danger">
+            <i class="bi bi-box-arrow-right"></i> Déconnexion
+        </a>
+
+        {% elif current_user.role == 'admin' %}
+        <a href="{{ url_for('admin_dashboard') }}"    class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">
+            <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
+        </a>
+        <a href="{{ url_for('admin_users') }}"        class="{{ 'active' if request.endpoint in ['admin_users','admin_user_detail','admin_adjust_balance'] }}">
+            <i class="bi bi-people"></i> Utilisateurs
+        </a>
+        <a href="{{ url_for('admin_transactions') }}" class="{{ 'active' if request.endpoint == 'admin_transactions' }}">
+            <i class="bi bi-arrow-down-up"></i> Transactions
+        </a>
+        <a href="{{ url_for('admin_reports') }}"      class="{{ 'active' if request.endpoint == 'admin_reports' }}">
+            <i class="bi bi-bar-chart"></i> Rapports
+        </a>
+        <a href="{{ url_for('admin_operators') }}"    class="{{ 'active' if request.endpoint in ['admin_operators','admin_add_operator'] }}">
+            <i class="bi bi-sim"></i> Opérateurs
+        </a>
+        <a href="{{ url_for('admin_audit_logs') }}"   class="{{ 'active' if request.endpoint == 'admin_audit_logs' }}">
+            <i class="bi bi-journal-text"></i> Audit
+        </a>
+        <div class="nav-sep"></div>
+        <a href="{{ url_for('admin_settings') }}"     class="{{ 'active' if request.endpoint == 'admin_settings' }}">
+            <i class="bi bi-gear"></i> Paramètres
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-danger">
+            <i class="bi bi-box-arrow-right"></i> Déconnexion
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-user">
+        <div class="avatar {{ current_user.role }}"><i class="bi bi-person"></i></div>
+        <div class="info">
+            <div class="label">Mon compte</div>
+            <div class="name">{{ current_user.username }}</div>
+        </div>
+        <i class="bi bi-chevron-down" style="color:#9ca3af;font-size:0.75rem;"></i>
+    </div>
+</aside>
+{% endif %}
+
+<div class="main-wrapper {{ '' if current_user.is_authenticated else 'no-sidebar' }}">
+    <div class="flash-zone">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mt-2" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    <div class="page-body">
+        {% block content %}{% endblock %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

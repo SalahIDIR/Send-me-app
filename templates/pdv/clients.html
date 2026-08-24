@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_pdv.html" %}
 
 {% block title %}Mes Clients - Topili{% endblock %}
 
@@ -40,12 +40,10 @@
                         </td>
                         <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
                         <td>
-                            <button class="btn btn-sm btn-secondary" data-bs-toggle="modal" 
-                                    data-bs-target="#transferModal" 
-                                    data-client-id="{{ client.id }}"
-                                    data-client-name="{{ client.username }}">
-                                <i class="bi bi-arrow-right"></i> Transférer
-                            </button>
+                            <a href="{{ url_for('transfer_credit') }}?client_id={{ client.id }}"
+                               class="btn btn-sm btn-primary">
+                                <i class="bi bi-arrow-down-up"></i> Transférer
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -105,42 +103,4 @@
 </nav>
 {% endif %}
 
-<!-- Modal de transfert rapide -->
-<div class="modal fade" id="transferModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Transférer du crédit</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="quickTransferForm">
-                    <p>Transférer à: <strong id="clientName"></strong></p>
-                    <div class="mb-3">
-                        <label for="transferAmount" class="form-label">Montant (DA)</label>
-                        <input type="number" class="form-control" id="transferAmount" 
-                               placeholder="0.00" step="0.01" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="transferDescription" class="form-label">Description (optionnel)</label>
-                        <textarea class="form-control" id="transferDescription" rows="2"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <a href="{{ url_for('transfer_credit') }}" class="btn btn-primary">
-                    Aller au transfert détaillé
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-document.getElementById('transferModal').addEventListener('show.bs.modal', function(e) {
-    document.getElementById('clientName').textContent = 
-        e.relatedTarget.getAttribute('data-client-name');
-});
-</script>
 {% endblock %}

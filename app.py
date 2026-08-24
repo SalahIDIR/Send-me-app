@@ -131,13 +131,23 @@ def login():
         
         if user is None or not user.check_password(form.password.data):
             flash('Nom d\'utilisateur ou mot de passe incorrect.', 'danger')
+            # log sans user_id car non authentifié
+            try:
+                audit = AuditLog(user_id=None, action='LOGIN_FAILED',
+                                 description=f'Tentative échouée pour: {form.username.data}',
+                                 ip_address=request.remote_addr, status='warning')
+                db.session.add(audit)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
             return redirect(url_for('login'))
-        
+
         if not user.is_active:
             flash('Votre compte a été désactivé.', 'danger')
             return redirect(url_for('login'))
-        
+
         login_user(user)
+        log_audit('LOGIN_SUCCESS', f'Connexion réussie ({user.role})')
         next_page = request.args.get('next')
         return redirect(next_page) if next_page else redirect(url_for('dashboard'))
     
@@ -148,6 +158,7 @@ def login():
 @login_required
 def logout():
     """Déconnexion"""
+    log_audit('LOGOUT', 'Déconnexion')
     logout_user()
     flash('Vous avez été déconnecté.', 'info')
     return redirect(url_for('login'))
@@ -228,6 +239,7 @@ def add_client():
         user.set_password('temp123456')
         db.session.add(user)
         db.session.commit()
+        log_audit('PDV_ADD_CLIENT', f'Client créé: {user.username} (email: {user.email})')
         flash(f'Client {user.username} créé avec succès ! Mot de passe temporaire : temp123456', 'success')
         return redirect(url_for('manage_clients'))
     
@@ -269,6 +281,9 @@ def transfer_credit():
 
         for operator, amount in operator_amounts.items():
             if amount > 0 and current_user.get_balance_by_operator(operator) < amount:
+                log_audit('PDV_TRANSFER_FAILED',
+                          f'Solde insuffisant {operator.title()} pour {client.username}: {amount:.2f} DA demandés',
+                          status='warning')
                 flash(f'Solde insuffisant pour {operator.title()} pour effectuer ce transfert.', 'danger')
                 return render_template('pdv/transfer.html', form=form, form_token=generate_form_token())
 
@@ -299,6 +314,8 @@ def transfer_credit():
             return render_template('pdv/transfer.html', form=form, form_token=generate_form_token())
 
         transfers = [f'{operator.title()}: {amount:.2f} DA' for operator, amount in operator_amounts.items() if amount > 0]
+        log_audit('PDV_TRANSFER_CREDIT',
+                  f'Transfert vers {client.username}: ' + ' | '.join(transfers))
         flash(f'Transfert effectué vers {client.username}: ' + ' | '.join(transfers), 'success')
         return redirect(url_for('dashboard'))
 
@@ -336,6 +353,9 @@ def send_credit():
             return render_template('client/send_credit.html', form=form, form_token=form_token)
 
         if not current_user.subtract_balance(amount, operator):
+            log_audit('CLIENT_SEND_FAILED',
+                      f'Solde {operator.title()} insuffisant pour envoyer {amount:.2f} DA vers {phone}',
+                      status='warning')
             flash(f'Solde {operator.title()} insuffisant.', 'danger')
             form_token = generate_form_token()
             return render_template('client/send_credit.html', form=form, form_token=form_token)
@@ -354,6 +374,7 @@ def send_credit():
 
         _do_send_credit_to_phone(phone, amount)
 
+        log_audit('CLIENT_SEND_CREDIT', f'{amount:.2f} DA envoyés vers {phone} ({operator.title()})')
         flash(f'{amount:.2f} DA envoyés vers le {phone} ({operator.title()}).', 'success')
         return redirect(url_for('dashboard'))
 
@@ -403,6 +424,7 @@ def edit_profile():
         current_user.email = form.email.data
         current_user.phone = form.phone.data
         db.session.commit()
+        log_audit('PROFILE_UPDATE', f'Profil mis à jour (email: {current_user.email})')
         flash('Profil mis à jour avec succès!', 'success')
         return redirect(url_for('profile'))
     elif request.method == 'GET':
@@ -418,10 +440,12 @@ def change_password():
     form = ChangePasswordForm()
     if form.validate_on_submit():
         if not current_user.check_password(form.old_password.data):
+            log_audit('PASSWORD_CHANGE_FAILED', 'Ancien mot de passe incorrect', status='warning')
             flash('Ancien mot de passe incorrect.', 'danger')
         else:
             current_user.set_password(form.new_password.data)
             db.session.commit()
+            log_audit('PASSWORD_CHANGE', 'Mot de passe modifié')
             flash('Mot de passe changé avec succès!', 'success')
             return redirect(url_for('profile'))
     

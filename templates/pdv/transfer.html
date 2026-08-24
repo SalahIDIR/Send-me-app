@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_pdv.html" %}
 
 {% block title %}Transférer du crédit - Topili{% endblock %}
 
@@ -190,6 +190,20 @@ searchInput.addEventListener('input', function() {
 searchInput.addEventListener('blur', function() {
     setTimeout(() => { dropdown.style.display = 'none'; }, 150);
 });
+
+// Pré-sélection via ?client_id=X
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const preId = params.get('client_id');
+    if (preId) {
+        const opt = clientOptions.find(o => o.value === preId);
+        if (opt) {
+            hiddenSelect.value = opt.value;
+            searchInput.value  = opt.text;
+            updateSummary();
+        }
+    }
+})();
 
 document.getElementById('transferForm').addEventListener('submit', function() {
     const btn = document.getElementById('submitBtn');
