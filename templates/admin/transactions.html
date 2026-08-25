@@ -38,7 +38,7 @@
                 <tbody>
                     {% for tx in transactions.items %}
                     <tr>
-                        <td>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ tx.created_at | localtime }}</td>
                         <td><strong>{{ tx.sender.username }}</strong></td>
                         <td><strong>{{ tx.receiver.username }}</strong></td>
                         <td>{{ "%.2f"|format(tx.amount) }} DA</td>

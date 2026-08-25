@@ -70,6 +70,10 @@ class SendCreditByPhoneForm(FlaskForm):
         DataRequired(),
         Regexp(r'^0[567]\d{8}$', message='Numéro invalide (ex: 0661234567)')
     ])
+    ussd_type = SelectField('Type', choices=[
+        ('flexy',   'Flexy'),
+        ('facture', 'Paiement Facture'),
+    ], default='flexy')
     amount = FloatField('Montant (DA)', validators=[
         DataRequired(),
         NumberRange(min=1, message='Le montant doit être au moins 1 DA')

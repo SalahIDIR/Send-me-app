@@ -96,7 +96,7 @@
                         <tbody>
                             {% for tx in recent_transactions[:5] %}
                             <tr>
-                                <td><small>{{ tx.created_at.strftime('%d/%m %H:%M') }}</small></td>
+                                <td><small>{{ tx.created_at | localtime('%d/%m %H:%M') }}</small></td>
                                 <td><small>{{ tx.sender.username }}</small></td>
                                 <td><small>{{ tx.receiver.username }}</small></td>
                                 <td><strong>{{ "%.2f"|format(tx.amount) }}</strong></td>

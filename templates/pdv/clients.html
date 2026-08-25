@@ -38,7 +38,7 @@
                         <td>
                             <strong style="color: var(--primary-color);">{{ "%.2f"|format(client.get_total_balance()) }} DA</strong>
                         </td>
-                        <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ client.created_at | localtime('%d/%m/%Y') }}</td>
                         <td>
                             <a href="{{ url_for('transfer_credit') }}?client_id={{ client.id }}"
                                class="btn btn-sm btn-primary">

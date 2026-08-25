@@ -360,13 +360,15 @@ def send_credit():
             form_token = generate_form_token()
             return render_template('client/send_credit.html', form=form, form_token=form_token)
 
+        ussd_type = form.ussd_type.data or 'flexy'
         transaction = Transaction(
             sender_id=current_user.id,
             receiver_id=current_user.id,
             operator=operator,
             recipient_phone=phone,
             amount=amount,
-            description=f'Envoi crédit -> {phone} ({operator.title()})',
+            ussd_type=ussd_type,
+            description=f'Envoi crédit ({ussd_type}) -> {phone} ({operator.title()})',
             status='pending'
         )
         db.session.add(transaction)
@@ -748,9 +750,17 @@ def worker_token_required(f):
 @app.route('/api/worker/pending', methods=['GET'])
 @worker_token_required
 def api_worker_pending():
-    """Retourne les transactions en attente d'envoi physique."""
-    pending = Transaction.query.filter_by(status='pending').filter(
-        Transaction.recipient_phone.isnot(None)
+    """Retourne les transactions pending + les processing bloquées depuis >5 min."""
+    stale_threshold = datetime.utcnow() - timedelta(minutes=5)
+    pending = Transaction.query.filter(
+        Transaction.recipient_phone.isnot(None),
+        db.or_(
+            Transaction.status == 'pending',
+            db.and_(
+                Transaction.status == 'processing',
+                Transaction.claimed_at < stale_threshold
+            )
+        )
     ).order_by(Transaction.created_at.asc()).limit(20).all()
 
     return jsonify({
@@ -759,6 +769,7 @@ def api_worker_pending():
                 'id': tx.id,
                 'recipient_phone': tx.recipient_phone,
                 'amount': tx.amount,
+                'ussd_type': tx.ussd_type or 'flexy',
                 'created_at': tx.created_at.isoformat(),
             }
             for tx in pending
@@ -766,14 +777,68 @@ def api_worker_pending():
     })
 
 
+@app.route('/api/check-offers', methods=['POST'])
+@login_required
+@role_required('client')
+def check_offers():
+    """Proxy vers le worker pour vérifier les offres d'un numéro via USSD."""
+    data = request.get_json(silent=True) or {}
+    phone = data.get('phone', '').strip()
+
+    prefix_map = {'07': 'djezzy', '05': 'ooredoo', '06': 'mobilis'}
+    operator = prefix_map.get(phone[:2])
+    if not operator:
+        return jsonify({'error': 'Numéro non reconnu'}), 400
+
+    worker_url = app.config.get('WORKER_HTTP_URL', 'http://localhost:8080').rstrip('/')
+    try:
+        r = requests.post(
+            f'{worker_url}/ussd/check-offers',
+            json={'operator': operator, 'phone': phone},
+            timeout=25,
+        )
+        return jsonify(r.json()), r.status_code
+    except requests.exceptions.ConnectionError:
+        return jsonify({'error': 'Worker non joignable. Vérifiez que le worker est démarré.'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/worker/claim/<int:tx_id>', methods=['POST'])
+@worker_token_required
+def api_worker_claim(tx_id):
+    """Réclame atomiquement une transaction pour éviter le double traitement."""
+    stale_threshold = datetime.utcnow() - timedelta(minutes=5)
+    claimed = Transaction.query.filter(
+        Transaction.id == tx_id,
+        db.or_(
+            Transaction.status == 'pending',
+            db.and_(
+                Transaction.status == 'processing',
+                Transaction.claimed_at < stale_threshold
+            )
+        )
+    ).update(
+        {'status': 'processing', 'claimed_at': datetime.utcnow()},
+        synchronize_session=False
+    )
+    db.session.commit()
+
+    if claimed == 0:
+        return jsonify({'error': 'Transaction déjà prise en charge'}), 409
+    return jsonify({'ok': True})
+
+
 @app.route('/api/worker/update/<int:tx_id>', methods=['POST'])
 @worker_token_required
 def api_worker_update(tx_id):
-    """Met à jour le statut d'une transaction après exécution par le worker."""
+    """Met à jour le statut d'une transaction après exécution par le worker.
+    Si failed : rembourse automatiquement le solde de l'expéditeur.
+    """
     tx = Transaction.query.get_or_404(tx_id)
 
-    if tx.status != 'pending':
-        return jsonify({'error': 'Transaction non pending'}), 409
+    if tx.status not in ('pending', 'processing'):
+        return jsonify({'error': 'Transaction déjà traitée'}), 409
 
     data = request.get_json(silent=True) or {}
     new_status = data.get('status')
@@ -782,8 +847,27 @@ def api_worker_update(tx_id):
         return jsonify({'error': 'Statut invalide (completed ou failed)'}), 400
 
     tx.status = new_status
-    db.session.commit()
 
+    if new_status == 'failed' and tx.recipient_phone:
+        # Remboursement automatique du solde de l'expéditeur
+        sender = User.query.get(tx.sender_id)
+        if sender:
+            sender.add_balance(tx.amount, tx.operator)
+            try:
+                audit = AuditLog(
+                    user_id=None,
+                    action='WORKER_REFUND',
+                    description=(f'Remboursement auto TX#{tx.id} : '
+                                 f'{tx.amount:.2f} DA {tx.operator} → {sender.username} '
+                                 f'(échec envoi vers {tx.recipient_phone})'),
+                    ip_address='worker',
+                    status='success'
+                )
+                db.session.add(audit)
+            except Exception:
+                pass
+
+    db.session.commit()
     return jsonify({'ok': True, 'id': tx_id, 'status': new_status})
 
 
@@ -804,6 +888,19 @@ def internal_error(error):
 def forbidden_error(error):
     """Erreur 403"""
     return render_template('errors/403.html'), 403
+
+# ==================== Filtres template ====================
+
+from datetime import timedelta as _td
+
+UTC_OFFSET = _td(hours=1)  # Algérie = UTC+1
+
+@app.template_filter('localtime')
+def localtime_filter(dt, fmt='%d/%m/%Y %H:%M'):
+    """Convertit un datetime UTC en heure locale algérienne (UTC+1)."""
+    if dt is None:
+        return ''
+    return (dt + UTC_OFFSET).strftime(fmt)
 
 # ==================== Contexte template ====================
 
@@ -897,6 +994,23 @@ def create_demo():
     print('Clients - Username: client_1 à client_5, Mot de passe: client123456')
     print('  - Solde par client (total): 5000 DA')
     print('Opérateurs: Djezzy, Ooredoo, Mobilis')
+
+@app.cli.command()
+def migrate_db():
+    """Ajouter les colonnes manquantes sans supprimer les données existantes."""
+    migrations = [
+        ('transactions', 'claimed_at', 'DATETIME'),
+        ('transactions', 'ussd_type',  'VARCHAR(20)'),
+    ]
+    with db.engine.connect() as conn:
+        for table, col, col_type in migrations:
+            try:
+                conn.execute(db.text(f'ALTER TABLE {table} ADD COLUMN {col} {col_type}'))
+                conn.commit()
+                print(f'  + {table}.{col} ajoutée.')
+            except Exception:
+                print(f'  ~ {table}.{col} existe déjà.')
+
 
 if __name__ == '__main__':
     with app.app_context():

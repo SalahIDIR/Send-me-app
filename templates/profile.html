@@ -78,7 +78,7 @@
                         <h6 class="mb-0">Inscrit le</h6>
                     </div>
                     <div class="col-sm-9 text-secondary">
-                        {{ current_user.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                        {{ current_user.created_at | localtime('%d/%m/%Y à %H:%M') }}
                     </div>
                 </div>
             </div>

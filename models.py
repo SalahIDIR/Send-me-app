@@ -114,9 +114,15 @@ class Transaction(db.Model):
     # Description/Raison de la transaction
     description = db.Column(db.String(255))
 
-    # Statut: 'completed', 'pending', 'failed'
+    # Type d'opération worker: 'flexy', 'facture'
+    ussd_type = db.Column(db.String(20), default='flexy', nullable=True)
+
+    # Statut: 'pending', 'processing', 'completed', 'failed'
     status = db.Column(db.String(20), default='completed', nullable=False)
-    
+
+    # Timestamp quand le worker a réclamé la transaction (anti double-traitement)
+    claimed_at = db.Column(db.DateTime, nullable=True)
+
     # Date de création
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     

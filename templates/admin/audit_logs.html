@@ -26,7 +26,7 @@
                 <tbody>
                     {% for log in logs.items %}
                     <tr>
-                        <td><small>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</small></td>
+                        <td><small>{{ log.created_at | localtime('%d/%m/%Y %H:%M:%S') }}</small></td>
                         <td>
                             {% if log.user %}
                             <strong>{{ log.user.username }}</strong>

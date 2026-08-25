@@ -70,7 +70,7 @@
                 <hr>
                 <div class="row mb-0">
                     <div class="col-sm-4"><strong>Inscrit:</strong></div>
-                    <div class="col-sm-8">{{ user.created_at.strftime('%d/%m/%Y à %H:%M') }}</div>
+                    <div class="col-sm-8">{{ user.created_at | localtime('%d/%m/%Y à %H:%M') }}</div>
                 </div>
             </div>
         </div>
@@ -155,7 +155,7 @@
                                 <td><strong>{{ client.username }}</strong></td>
                                 <td>{{ client.email }}</td>
                                 <td>{{ "%.2f"|format(client.get_total_balance()) }} DA</td>
-                                <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ client.created_at | localtime('%d/%m/%Y') }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -189,7 +189,7 @@
                         <tbody>
                             {% for tx in recent_transactions %}
                             <tr>
-                                <td><small>{{ tx.created_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                                <td><small>{{ tx.created_at | localtime }}</small></td>
                                 <td>
                                     {% if tx.sender_id == user.id %}
                                     <span class="badge" style="background-color: #e74c3c; color: white;">Envoyé</span>

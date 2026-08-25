@@ -28,7 +28,7 @@
                 <tbody>
                     {% for transaction in transactions.items %}
                     <tr>
-                        <td>{{ transaction.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ transaction.created_at | localtime }}</td>
                         <td>
                             {% if transaction.sender.id == current_user.id %}
                             <span class="badge" style="background-color: #e74c3c; color: white;">Envoyé</span>

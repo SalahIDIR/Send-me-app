@@ -11,11 +11,12 @@
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-7 col-lg-6">
 
+        <!-- Soldes par opérateur -->
         <div class="row g-2 mb-3">
             <div class="col-4">
-                <div class="card h-100 text-center balance-card" style="transition: all 0.2s;">
+                <div class="card h-100 text-center balance-card" data-op="07" style="transition: all 0.2s;">
                     <div class="card-body py-2">
                         <div class="fw-bold" style="color:#e30613;">Djezzy</div>
                         <div class="fs-6">{{ "%.2f"|format(current_user.balance_djezzy) }} DA</div>
@@ -23,15 +24,15 @@
                 </div>
             </div>
             <div class="col-4">
-                <div class="card h-100 text-center balance-card" style="transition: all 0.2s;">
+                <div class="card h-100 text-center balance-card" data-op="05" style="transition: all 0.2s;">
                     <div class="card-body py-2">
-                        <div class="fw-bold" style="color:#8b1a8b;">Nedjma</div>
+                        <div class="fw-bold" style="color:#8b1a8b;">Ooredoo</div>
                         <div class="fs-6">{{ "%.2f"|format(current_user.balance_ooredoo) }} DA</div>
                     </div>
                 </div>
             </div>
             <div class="col-4">
-                <div class="card h-100 text-center balance-card" style="transition: all 0.2s;">
+                <div class="card h-100 text-center balance-card" data-op="06" style="transition: all 0.2s;">
                     <div class="card-body py-2">
                         <div class="fw-bold" style="color:#f7941d;">Mobilis</div>
                         <div class="fs-6">{{ "%.2f"|format(current_user.balance_mobilis) }} DA</div>
@@ -40,6 +41,7 @@
             </div>
         </div>
 
+        <!-- Formulaire principal -->
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-arrow-right-circle"></i> Nouveau transfert
@@ -49,19 +51,46 @@
                     {{ form.hidden_tag() }}
                     <input type="hidden" name="form_token" value="{{ form_token }}">
 
+                    <!-- Numéro de téléphone -->
                     <div class="mb-3">
                         {{ form.phone_number.label(class="form-label") }}
-                        {{ form.phone_number(class="form-control" + (" is-invalid" if form.phone_number.errors else ""),
-                                             placeholder="0661234567", maxlength=10, id="phoneInput") }}
+                        <div class="input-group">
+                            {{ form.phone_number(class="form-control" + (" is-invalid" if form.phone_number.errors else ""),
+                                                 placeholder="0661234567", maxlength=10, id="phoneInput",
+                                                 autocomplete="tel") }}
+                            <button type="button" class="btn btn-outline-secondary" id="checkOffersBtn"
+                                    style="display:none;" title="Vérifier les offres disponibles">
+                                <i class="bi bi-search"></i> Offres
+                            </button>
+                        </div>
                         {% for error in form.phone_number.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
+                            <div class="text-danger small mt-1">{{ error }}</div>
                         {% endfor %}
                         <div id="operatorBadge" class="mt-2" style="display:none;">
                             <span id="operatorLabel" class="badge fs-6 px-3 py-2"></span>
                         </div>
                     </div>
 
-                    <div class="mb-4">
+                    <!-- Type : Flexy / Paiement Facture -->
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.ussd_type.label.text }}</label>
+                        <div class="btn-group w-100" role="group" id="typeSelector">
+                            <input type="radio" class="btn-check" name="ussd_type" id="type_flexy"
+                                   value="flexy" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="type_flexy">
+                                <i class="bi bi-phone"></i> Flexy
+                            </label>
+
+                            <input type="radio" class="btn-check" name="ussd_type" id="type_facture"
+                                   value="facture" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="type_facture">
+                                <i class="bi bi-receipt"></i> Paiement Facture
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Montant -->
+                    <div class="mb-3">
                         {{ form.amount.label(class="form-label") }}
                         {{ form.amount(class="form-control" + (" is-invalid" if form.amount.errors else ""),
                                        placeholder="100", step="1", min="1") }}
@@ -70,62 +99,122 @@
                         {% endfor %}
                     </div>
 
-                    <div class="alert alert-warning py-2">
+                    <div class="alert alert-warning py-2 mb-3">
                         <small><i class="bi bi-exclamation-triangle"></i> Une fois envoyé, le crédit ne peut pas être annulé.</small>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100" id="submitBtn">
-                        Envoyer le crédit
+                        <i class="bi bi-send"></i> Envoyer le crédit
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Panneau offres (affiché après "Vérifier les offres") -->
+        <div id="offresPanel" class="card mt-3" style="display:none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-stars"></i> Offres disponibles</span>
+                <button type="button" class="btn-close btn-sm" onclick="document.getElementById('offresPanel').style.display='none'"></button>
+            </div>
+            <div class="card-body">
+                <div id="offresLoading" class="text-center py-3" style="display:none;">
+                    <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                    Récupération des offres…
+                </div>
+                <div id="offresError" class="alert alert-danger py-2 mb-0" style="display:none;"></div>
+                <pre id="offresContent" class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;"></pre>
+            </div>
+        </div>
+
+    </div>
+</div>
 
 <script>
 const OPERATORS = {
-    '07': { name: 'Djezzy',  color: '#e30613', card: 0 },
-    '05': { name: 'Nedjma',  color: '#8b1a8b', card: 1 },
-    '06': { name: 'Mobilis', color: '#f7941d', card: 2 },
+    '07': { name: 'Djezzy',  color: '#e30613', key: 'djezzy'  },
+    '05': { name: 'Ooredoo', color: '#8b1a8b', key: 'ooredoo' },
+    '06': { name: 'Mobilis', color: '#f7941d', key: 'mobilis' },
 };
 
-const balanceCards = document.querySelectorAll('.balance-card');
+const balanceCards  = document.querySelectorAll('.balance-card');
+const phoneInput    = document.getElementById('phoneInput');
+const badge         = document.getElementById('operatorBadge');
+const badgeLabel    = document.getElementById('operatorLabel');
+const checkBtn      = document.getElementById('checkOffersBtn');
+const offresPanel   = document.getElementById('offresPanel');
+const offresLoading = document.getElementById('offresLoading');
+const offresError   = document.getElementById('offresError');
+const offresContent = document.getElementById('offresContent');
 
-document.getElementById('phoneInput').addEventListener('input', function() {
-    const prefix = this.value.slice(0, 2);
-    const badge  = document.getElementById('operatorBadge');
-    const label  = document.getElementById('operatorLabel');
-    const op     = OPERATORS[prefix];
+function getDetectedOp(phone) {
+    return OPERATORS[phone.slice(0, 2)] || null;
+}
 
-    // Remettre toutes les cartes à la normale
+phoneInput.addEventListener('input', function () {
+    const op = getDetectedOp(this.value);
+
     balanceCards.forEach(c => {
         c.style.boxShadow = '';
         c.style.transform = '';
     });
 
     if (op && this.value.length >= 2) {
-        label.textContent            = op.name;
-        label.style.backgroundColor  = op.color;
-        label.style.color            = '#fff';
-        badge.style.display          = 'block';
+        badgeLabel.textContent           = op.name;
+        badgeLabel.style.backgroundColor = op.color;
+        badgeLabel.style.color           = '#fff';
+        badge.style.display              = 'block';
 
-        // Mettre en évidence la carte de l'opérateur détecté
-        const activeCard = balanceCards[op.card];
+        const activeCard = document.querySelector(`.balance-card[data-op="${this.value.slice(0,2)}"]`);
         if (activeCard) {
             activeCard.style.boxShadow = `0 0 0 3px ${op.color}`;
             activeCard.style.transform = 'scale(1.03)';
         }
+
+        // Afficher bouton "Offres" seulement si le numéro est complet (10 chiffres)
+        checkBtn.style.display = (this.value.length === 10) ? '' : 'none';
     } else {
-        badge.style.display = 'none';
+        badge.style.display  = 'none';
+        checkBtn.style.display = 'none';
+        offresPanel.style.display = 'none';
     }
 });
 
-document.getElementById('sendForm').addEventListener('submit', function() {
+checkBtn.addEventListener('click', function () {
+    const phone = phoneInput.value;
+    const op = getDetectedOp(phone);
+    if (!op || phone.length !== 10) return;
+
+    offresPanel.style.display  = '';
+    offresLoading.style.display = '';
+    offresError.style.display   = 'none';
+    offresContent.textContent   = '';
+
+    fetch('/api/check-offers', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ operator: op.key, phone: phone }),
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        offresLoading.style.display = 'none';
+        if (ok && data.ok) {
+            offresContent.textContent = data.response || 'Aucune offre reçue.';
+        } else {
+            offresError.style.display = '';
+            offresError.textContent = data.error || 'Erreur lors de la récupération des offres.';
+        }
+    })
+    .catch(err => {
+        offresLoading.style.display = 'none';
+        offresError.style.display   = '';
+        offresError.textContent = 'Impossible de contacter le serveur : ' + err.message;
+    });
+});
+
+document.getElementById('sendForm').addEventListener('submit', function () {
     const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Envoi en cours...';
+    btn.disabled    = true;
+    btn.innerHTML   = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi en cours…';
 });
 </script>
-            </div>
-        </div>
-
-    </div>
-</div>
 {% endblock %}
